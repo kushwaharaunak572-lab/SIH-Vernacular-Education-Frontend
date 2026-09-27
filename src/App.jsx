@@ -2243,21 +2243,66 @@ function App() {
                                   option.key
                                 )
                               }
+                              style={{
+                                width: "100%",
+                                minHeight: "64px",
+                                display: "flex",
+                                flexDirection: "row",
+                                alignItems: "center",
+                                justifyContent: "flex-start",
+                                gap: "14px",
+                                padding: "14px 18px",
+                                margin: "0",
+                                boxSizing: "border-box",
+                                textAlign: "left",
+                              }}
                             >
-                              <span className="option-key">
-                                {
-                                  option.key
-                                }
+                              <span
+                                className="option-key"
+                                style={{
+                                  width: "38px",
+                                  height: "38px",
+                                  minWidth: "38px",
+                                  flex: "0 0 38px",
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  boxSizing: "border-box",
+                                  borderRadius: "10px",
+                                  fontWeight: 800,
+                                  lineHeight: 1,
+                                }}
+                              >
+                                {option.key}
                               </span>
 
-                              <span>
-                                {
-                                  option.text
-                                }
+                              <span
+                                style={{
+                                  flex: "1 1 auto",
+                                  minWidth: 0,
+                                  display: "block",
+                                  textAlign: "left",
+                                  lineHeight: 1.5,
+                                }}
+                              >
+                                {option.text}
                               </span>
 
                               {selected && (
-                                <span className="option-check">
+                                <span
+                                  className="option-check"
+                                  style={{
+                                    marginLeft: "auto",
+                                    flex: "0 0 28px",
+                                    width: "28px",
+                                    height: "28px",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    borderRadius: "50%",
+                                    fontWeight: 800,
+                                  }}
+                                >
                                   ✓
                                 </span>
                               )}
