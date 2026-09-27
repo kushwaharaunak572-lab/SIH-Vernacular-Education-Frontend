@@ -1,103 +1,167 @@
-
 import { useState } from "react";
 import "./App.css";
 
 const API_URL =
   import.meta.env.VITE_API_URL ||
-  "http://127.0.0.1:8000";
+  "https://sih-vernacular-education-backend.onrender.com";
+
+const API = {
+  login: `${API_URL}/login`,
+  dashboard: `${API_URL}/dashboard`,
+  achievements: `${API_URL}/achievements/me`,
+  certificates: `${API_URL}/certificates/me`,
+  subjects: `${API_URL}/subjects`,
+  lessons: `${API_URL}/lessons`,
+  languages: `${API_URL}/languages`,
+  translate: `${API_URL}/translate`,
+  quizAttempt: `${API_URL}/quiz/attempt`,
+  quizSubmit: `${API_URL}/quiz/submit`,
+};
+
+function getToken() {
+  return localStorage.getItem("access_token");
+}
+
+function authHeaders(token = getToken()) {
+  return token
+    ? {
+        Authorization: `Bearer ${token}`,
+      }
+    : {};
+}
+
+async function parseResponse(response) {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    return await response.json();
+  }
+
+  return await response.text();
+}
+
+function clampPercentage(value) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(100, number));
+}
 
 function App() {
-  // ==================================================
-  // LOGIN STATES
-  // ==================================================
+  // =========================================================
+  // LOGIN
+  // =========================================================
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  // ==================================================
+  // =========================================================
   // DASHBOARD
-  // ==================================================
+  // =========================================================
+
   const [dashboard, setDashboard] = useState(null);
 
-  // ==================================================
+  // =========================================================
   // ACHIEVEMENTS
-  // ==================================================
+  // =========================================================
+
   const [achievements, setAchievements] = useState(null);
   const [achievementsLoading, setAchievementsLoading] =
     useState(false);
   const [showAchievements, setShowAchievements] =
     useState(false);
 
-  // ==================================================
+  // =========================================================
   // CERTIFICATES
-  // ==================================================
-  const [certificates, setCertificates] = useState(null);
-  const [certificatesLoading, setCertificatesLoading] = useState(false);
-  const [showCertificates, setShowCertificates] = useState(false);
+  // =========================================================
 
-  // ==================================================
+  const [certificates, setCertificates] = useState(null);
+  const [certificatesLoading, setCertificatesLoading] =
+    useState(false);
+  const [showCertificates, setShowCertificates] =
+    useState(false);
+
+  // =========================================================
   // SUBJECTS
-  // ==================================================
+  // =========================================================
+
   const [subjects, setSubjects] = useState(null);
   const [subjectsLoading, setSubjectsLoading] =
     useState(false);
 
-  // ==================================================
+  // =========================================================
   // LESSONS
-  // ==================================================
+  // =========================================================
+
   const [lessons, setLessons] = useState(null);
   const [selectedSubject, setSelectedSubject] =
     useState(null);
   const [lessonsLoading, setLessonsLoading] =
     useState(false);
 
-  // ==================================================
+  // =========================================================
   // SELECTED LESSON
-  // ==================================================
+  // =========================================================
+
   const [selectedLesson, setSelectedLesson] =
     useState(null);
 
-  // ==================================================
+  // =========================================================
   // QUIZ
-  // ==================================================
+  // =========================================================
+
   const [quizQuestions, setQuizQuestions] =
     useState(null);
+
   const [quizAnswers, setQuizAnswers] = useState({});
+
   const [quizLoading, setQuizLoading] =
     useState(false);
+
   const [quizSubmitting, setQuizSubmitting] =
     useState(false);
+
   const [quizResult, setQuizResult] =
     useState(null);
 
-  // ==================================================
+  // =========================================================
   // TRANSLATION
-  // ==================================================
+  // =========================================================
+
   const [translationOpen, setTranslationOpen] =
     useState(false);
+
   const [languages, setLanguages] = useState([]);
+
   const [languagesLoading, setLanguagesLoading] =
     useState(false);
 
   const [sourceLanguage, setSourceLanguage] =
     useState("en-IN");
+
   const [targetLanguage, setTargetLanguage] =
     useState("hi-IN");
+
   const [translationText, setTranslationText] =
     useState("");
+
   const [translationResult, setTranslationResult] =
     useState("");
+
   const [translationLoading, setTranslationLoading] =
     useState(false);
 
-  // ==================================================
+  // =========================================================
   // LOGIN
-  // ==================================================
-  const handleLogin = async () => {
-    console.log("LOGIN BUTTON CLICKED");
+  // =========================================================
 
-    if (!email || !password) {
+  const handleLogin = async () => {
+    if (!email.trim() || !password) {
       setMessage("Please enter email and password.");
       return;
     }
@@ -108,80 +172,58 @@ function App() {
     try {
       const formData = new URLSearchParams();
 
-      formData.append("username", email);
+      formData.append("username", email.trim());
       formData.append("password", password);
 
-      const loginResponse = await fetch(
-        `${API_URL}/login`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/x-www-form-urlencoded",
-          },
-          body: formData.toString(),
-        }
-      );
+      const response = await fetch(API.login, {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/x-www-form-urlencoded",
+        },
+        body: formData.toString(),
+      });
 
-      const loginData =
-        await loginResponse.json();
+      const data = await parseResponse(response);
 
-      console.log(
-        "Login response:",
-        loginData
-      );
-
-      if (!loginResponse.ok) {
+      if (!response.ok) {
         setMessage(
-          loginData.detail || "Login failed."
+          typeof data === "object"
+            ? data.detail || "Login failed."
+            : "Login failed."
         );
         return;
       }
 
       localStorage.setItem(
         "access_token",
-        loginData.access_token
+        data.access_token
       );
 
-      // ==============================================
-      // LOAD DASHBOARD
-      // ==============================================
-
-      const dashboardResponse =
-        await fetch(
-          `${API_URL}/dashboard`,
-          {
-            method: "GET",
-            headers: {
-              Authorization:
-                "Bearer " +
-                loginData.access_token,
-            },
-          }
-        );
+      const dashboardResponse = await fetch(
+        API.dashboard,
+        {
+          method: "GET",
+          headers: authHeaders(data.access_token),
+        }
+      );
 
       const dashboardData =
-        await dashboardResponse.json();
-
-      console.log(
-        "Dashboard response:",
-        dashboardData
-      );
+        await parseResponse(dashboardResponse);
 
       if (!dashboardResponse.ok) {
         setMessage(
-          dashboardData.detail ||
-            "Dashboard load nahi ho pa raha."
+          typeof dashboardData === "object"
+            ? dashboardData.detail ||
+                "Dashboard load nahi ho pa raha."
+            : "Dashboard load nahi ho pa raha."
         );
         return;
       }
 
       setDashboard(dashboardData);
     } catch (error) {
-      console.error(
-        "Login error:",
-        error
-      );
+      console.error("Login error:", error);
 
       setMessage(
         "Backend server se connection nahi ho pa raha."
@@ -191,12 +233,12 @@ function App() {
     }
   };
 
-  // ==================================================
-  // LOAD ACHIEVEMENTS
-  // ==================================================
-  const loadAchievements = async () => {
-    const token =
-      localStorage.getItem("access_token");
+  // =========================================================
+  // DASHBOARD REFRESH
+  // =========================================================
+
+  const refreshDashboard = async () => {
+    const token = getToken();
 
     if (!token) {
       setMessage("Please login again.");
@@ -204,36 +246,63 @@ function App() {
     }
 
     try {
-      setAchievementsLoading(true);
-      setMessage("");
+      const response = await fetch(API.dashboard, {
+        method: "GET",
+        headers: authHeaders(token),
+      });
 
+      const data = await parseResponse(response);
+
+      if (response.ok) {
+        setDashboard(data);
+      }
+    } catch (error) {
+      console.error(
+        "Dashboard refresh error:",
+        error
+      );
+    }
+  };
+
+  // =========================================================
+  // ACHIEVEMENTS
+  // =========================================================
+
+  const loadAchievements = async () => {
+    const token = getToken();
+
+    if (!token) {
+      setMessage("Please login again.");
+      return;
+    }
+
+    setAchievementsLoading(true);
+    setMessage("");
+
+    try {
       const response = await fetch(
-        `${API_URL}/achievements/me`,
+        API.achievements,
         {
           method: "GET",
-          headers: {
-            Authorization:
-              "Bearer " + token,
-          },
+          headers: authHeaders(token),
         }
       );
 
-      const data = await response.json();
-
-      console.log(
-        "Achievements response:",
-        data
-      );
+      const data = await parseResponse(response);
 
       if (!response.ok) {
         setMessage(
-          data.detail ||
-            "Achievements load nahi ho pa rahe."
+          typeof data === "object"
+            ? data.detail ||
+                "Achievements load nahi ho pa rahe."
+            : "Achievements load nahi ho pa rahe."
         );
         return;
       }
 
-      setAchievements(data);
+      setAchievements(
+        Array.isArray(data) ? data : []
+      );
     } catch (error) {
       console.error(
         "Achievements error:",
@@ -248,58 +317,65 @@ function App() {
     }
   };
 
-  // ==================================================
-  // OPEN ACHIEVEMENTS
-  // ==================================================
   const openAchievements = async () => {
     setShowAchievements(true);
     setMessage("");
     await loadAchievements();
   };
 
-  // ==================================================
-  // CLOSE ACHIEVEMENTS
-  // ==================================================
   const closeAchievements = () => {
     setShowAchievements(false);
     setMessage("");
   };
 
-  // ==================================================
-  // LOAD CERTIFICATES
-  // ==================================================
+  // =========================================================
+  // CERTIFICATES
+  // =========================================================
+
   const loadCertificates = async () => {
-    const token = localStorage.getItem("access_token");
+    const token = getToken();
 
     if (!token) {
       setMessage("Please login again.");
       return;
     }
 
+    setCertificatesLoading(true);
+    setMessage("");
+
     try {
-      setCertificatesLoading(true);
-      setMessage("");
+      const response = await fetch(
+        API.certificates,
+        {
+          method: "GET",
+          headers: authHeaders(token),
+        }
+      );
 
-      const response = await fetch(`${API_URL}/certificates/me`, {
-        method: "GET",
-        headers: {
-          Authorization: "Bearer " + token,
-        },
-      });
-
-      const data = await response.json();
-
-      console.log("Certificates response:", data);
+      const data = await parseResponse(response);
 
       if (!response.ok) {
-        setMessage(data.detail || "Certificates load nahi ho pa rahe.");
+        setMessage(
+          typeof data === "object"
+            ? data.detail ||
+                "Certificates load nahi ho pa rahe."
+            : "Certificates load nahi ho pa rahe."
+        );
         return;
       }
 
-      setCertificates(Array.isArray(data) ? data : []);
+      setCertificates(
+        Array.isArray(data) ? data : []
+      );
     } catch (error) {
-      console.error("Certificates error:", error);
-      setMessage("Certificates load karte time error aa gaya.");
+      console.error(
+        "Certificates error:",
+        error
+      );
+
+      setMessage(
+        "Certificates load karte time error aa gaya."
+      );
     } finally {
       setCertificatesLoading(false);
     }
@@ -316,11 +392,14 @@ function App() {
     setMessage("");
   };
 
-  // ==================================================
-  // DOWNLOAD CERTIFICATE PDF
-  // ==================================================
-  const handleDownloadCertificate = async (certificate) => {
-    const token = localStorage.getItem("access_token");
+  // =========================================================
+  // CERTIFICATE PDF DOWNLOAD
+  // =========================================================
+
+  const handleDownloadCertificate = async (
+    certificate
+  ) => {
+    const token = getToken();
 
     if (!token) {
       setMessage("Please login again.");
@@ -339,20 +418,23 @@ function App() {
         `${API_URL}/certificates/${certificate.certificate_id}/download`,
         {
           method: "GET",
-          headers: {
-            Authorization: "Bearer " + token,
-          },
+          headers: authHeaders(token),
         }
       );
 
       if (!response.ok) {
-        let errorMessage = "Certificate download nahi ho pa raha.";
+        let errorMessage =
+          "Certificate download nahi ho pa raha.";
 
         try {
-          const errorData = await response.json();
-          errorMessage = errorData.detail || errorMessage;
+          const errorData =
+            await response.json();
+
+          errorMessage =
+            errorData.detail ||
+            errorMessage;
         } catch {
-          // Response JSON nahi hai, default message use hoga.
+          // Keep default message.
         }
 
         setMessage(errorMessage);
@@ -360,66 +442,76 @@ function App() {
       }
 
       const pdfBlob = await response.blob();
-      const pdfUrl = window.URL.createObjectURL(pdfBlob);
 
-      const link = document.createElement("a");
+      const pdfUrl =
+        window.URL.createObjectURL(pdfBlob);
+
+      const link =
+        document.createElement("a");
+
       link.href = pdfUrl;
-      link.download = `${certificate.certificate_id}.pdf`;
+
+      link.download =
+        `${certificate.certificate_id}.pdf`;
+
       document.body.appendChild(link);
+
       link.click();
+
       link.remove();
 
       window.URL.revokeObjectURL(pdfUrl);
     } catch (error) {
-      console.error("Certificate download error:", error);
-      setMessage("Certificate download karte time error aa gaya.");
+      console.error(
+        "Certificate download error:",
+        error
+      );
+
+      setMessage(
+        "Certificate download karte time error aa gaya."
+      );
     }
   };
 
+  // =========================================================
+  // SUBJECTS
+  // =========================================================
 
-  // ==================================================
-  // LOAD SUBJECTS
-  // ==================================================
   const loadSubjects = async () => {
+    const token = getToken();
+
+    if (!token) {
+      setMessage("Please login again.");
+      return;
+    }
+
     setSubjectsLoading(true);
     setMessage("");
 
     try {
-      const token =
-        localStorage.getItem("access_token");
-
-      if (!token) {
-        setMessage("Please login again.");
-        return;
-      }
-
       const response = await fetch(
-        `${API_URL}/subjects`,
+        API.subjects,
         {
           method: "GET",
-          headers: {
-            Authorization:
-              "Bearer " + token,
-          },
+          headers: authHeaders(token),
         }
       );
 
-      const data = await response.json();
-
-      console.log(
-        "Subjects response:",
-        data
-      );
+      const data = await parseResponse(response);
 
       if (!response.ok) {
         setMessage(
-          data.detail ||
-            "Subjects load nahi ho pa rahe."
+          typeof data === "object"
+            ? data.detail ||
+                "Subjects load nahi ho pa rahe."
+            : "Subjects load nahi ho pa rahe."
         );
         return;
       }
 
-      setSubjects(data);
+      setSubjects(
+        Array.isArray(data) ? data : []
+      );
     } catch (error) {
       console.error(
         "Subjects error:",
@@ -434,49 +526,45 @@ function App() {
     }
   };
 
-  // ==================================================
-  // LOAD LESSONS
-  // ==================================================
+  // =========================================================
+  // LESSONS
+  // =========================================================
+
   const loadLessons = async (subject) => {
+    const token = getToken();
+
+    if (!token) {
+      setMessage("Please login again.");
+      return;
+    }
+
     setLessonsLoading(true);
     setMessage("");
+
     setSelectedLesson(null);
     setSelectedSubject(subject);
+
     setQuizQuestions(null);
     setQuizResult(null);
     setQuizAnswers({});
 
     try {
-      const token =
-        localStorage.getItem("access_token");
-
-      if (!token) {
-        setMessage("Please login again.");
-        return;
-      }
-
       const response = await fetch(
-        `${API_URL}/lessons`,
+        API.lessons,
         {
           method: "GET",
-          headers: {
-            Authorization:
-              "Bearer " + token,
-          },
+          headers: authHeaders(token),
         }
       );
 
-      const data = await response.json();
-
-      console.log(
-        "All lessons:",
-        data
-      );
+      const data = await parseResponse(response);
 
       if (!response.ok) {
         setMessage(
-          data.detail ||
-            "Lessons load nahi ho pa rahe."
+          typeof data === "object"
+            ? data.detail ||
+                "Lessons load nahi ho pa rahe."
+            : "Lessons load nahi ho pa rahe."
         );
         return;
       }
@@ -485,16 +573,10 @@ function App() {
         Array.isArray(data)
           ? data.filter(
               (lesson) =>
-                Number(
-                  lesson.subject_id
-                ) === Number(subject.id)
+                Number(lesson.subject_id) ===
+                Number(subject.id)
             )
           : [];
-
-      console.log(
-        "Filtered lessons:",
-        subjectLessons
-      );
 
       setLessons(subjectLessons);
     } catch (error) {
@@ -511,9 +593,10 @@ function App() {
     }
   };
 
-  // ==================================================
+  // =========================================================
   // OPEN LESSON
-  // ==================================================
+  // =========================================================
+
   const openLesson = (lesson) => {
     setSelectedLesson(lesson);
     setQuizQuestions(null);
@@ -522,11 +605,19 @@ function App() {
     setMessage("");
   };
 
-  // ==================================================
+  // =========================================================
   // START QUIZ
-  // ==================================================
+  // =========================================================
+
   const startQuiz = async () => {
     if (!selectedLesson) {
+      return;
+    }
+
+    const token = getToken();
+
+    if (!token) {
+      setMessage("Please login again.");
       return;
     }
 
@@ -537,80 +628,63 @@ function App() {
     setMessage("");
 
     try {
-      const token =
-        localStorage.getItem("access_token");
-
-      if (!token) {
-        setMessage("Please login again.");
-        return;
-      }
-
-      // ==============================================
-      // START QUIZ ATTEMPT
-      // ==============================================
+      // -----------------------------------------------------
+      // CREATE ATTEMPT
+      // -----------------------------------------------------
 
       const attemptResponse =
-        await fetch(
-          `${API_URL}/quiz/attempt`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type":
-                "application/json",
-              Authorization:
-                "Bearer " + token,
-            },
-            body: JSON.stringify({
-              lesson_id:
-                selectedLesson.id,
-            }),
-          }
-        );
+        await fetch(API.quizAttempt, {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+            ...authHeaders(token),
+          },
+          body: JSON.stringify({
+            lesson_id:
+              selectedLesson.id,
+          }),
+        });
 
       const attemptData =
-        await attemptResponse.json();
-
-      console.log(
-        "Quiz attempt:",
-        attemptData
-      );
+        await parseResponse(
+          attemptResponse
+        );
 
       if (!attemptResponse.ok) {
         setMessage(
-          attemptData.detail ||
-            "Quiz start nahi ho pa raha."
+          typeof attemptData === "object"
+            ? attemptData.detail ||
+                "Quiz start nahi ho pa raha."
+            : "Quiz start nahi ho pa raha."
         );
         return;
       }
 
-      // ==============================================
+      // -----------------------------------------------------
       // LOAD QUESTIONS
-      // ==============================================
+      // -----------------------------------------------------
 
       const questionResponse =
         await fetch(
           `${API_URL}/quiz/lesson/${selectedLesson.id}`,
           {
             method: "GET",
-            headers: {
-              Authorization:
-                "Bearer " + token,
-            },
+            headers: authHeaders(token),
           }
         );
 
       const questionData =
-        await questionResponse.json();
-
-      console.log(
-        "Quiz questions:",
-        questionData
-      );
+        await parseResponse(
+          questionResponse
+        );
 
       if (!questionResponse.ok) {
         setMessage(
-          questionData.detail ||
-            "Quiz questions load nahi ho rahe."
+          typeof questionData === "object"
+            ? questionData.detail ||
+                "Quiz questions load nahi ho rahe."
+            : "Quiz questions load nahi ho rahe."
         );
         return;
       }
@@ -640,9 +714,10 @@ function App() {
     }
   };
 
-  // ==================================================
-  // SELECT QUIZ ANSWER
-  // ==================================================
+  // =========================================================
+  // SELECT ANSWER
+  // =========================================================
+
   const selectAnswer = (
     questionId,
     answer
@@ -653,9 +728,10 @@ function App() {
     }));
   };
 
-  // ==================================================
+  // =========================================================
   // SUBMIT QUIZ
-  // ==================================================
+  // =========================================================
+
   const submitQuiz = async () => {
     if (
       !selectedLesson ||
@@ -679,23 +755,23 @@ function App() {
       return;
     }
 
+    const token = getToken();
+
+    if (!token) {
+      setMessage("Please login again.");
+      return;
+    }
+
     setQuizSubmitting(true);
     setMessage("");
 
     try {
-      const token =
-        localStorage.getItem("access_token");
-
-      if (!token) {
-        setMessage("Please login again.");
-        return;
-      }
-
       const answers =
         quizQuestions.map(
           (question) => ({
             question_id:
               question.id,
+
             selected_answer:
               quizAnswers[
                 question.id
@@ -703,77 +779,37 @@ function App() {
           })
         );
 
-      const response = await fetch(
-        `${API_URL}/quiz/submit`,
-        {
+      const response =
+        await fetch(API.quizSubmit, {
           method: "POST",
           headers: {
             "Content-Type":
               "application/json",
-            Authorization:
-              "Bearer " + token,
+            ...authHeaders(token),
           },
           body: JSON.stringify({
             lesson_id:
               selectedLesson.id,
-            answers: answers,
+            answers,
           }),
-        }
-      );
+        });
 
       const data =
-        await response.json();
-
-      console.log(
-        "Quiz submit response:",
-        data
-      );
+        await parseResponse(response);
 
       if (!response.ok) {
         setMessage(
-          data.detail ||
-            "Quiz submit nahi ho pa raha."
+          typeof data === "object"
+            ? data.detail ||
+                "Quiz submit nahi ho pa raha."
+            : "Quiz submit nahi ho pa raha."
         );
         return;
       }
 
       setQuizResult(data);
 
-      // ==============================================
-      // REFRESH DASHBOARD DATA
-      // ==============================================
-
-      try {
-        const dashboardResponse =
-          await fetch(
-            `${API_URL}/dashboard`,
-            {
-              method: "GET",
-              headers: {
-                Authorization:
-                  "Bearer " + token,
-              },
-            }
-          );
-
-        const dashboardData =
-          await dashboardResponse.json();
-
-        if (
-          dashboardResponse.ok
-        ) {
-          setDashboard(
-            dashboardData
-          );
-        }
-      } catch (
-        dashboardError
-      ) {
-        console.log(
-          "Dashboard refresh error:",
-          dashboardError
-        );
-      }
+      await refreshDashboard();
     } catch (error) {
       console.error(
         "Quiz submit error:",
@@ -788,9 +824,10 @@ function App() {
     }
   };
 
-  // ==================================================
+  // =========================================================
   // EXIT QUIZ
-  // ==================================================
+  // =========================================================
+
   const exitQuiz = () => {
     setQuizQuestions(null);
     setQuizAnswers({});
@@ -798,36 +835,35 @@ function App() {
     setMessage("");
   };
 
-  // ==================================================
-  // LOAD LANGUAGES
-  // ==================================================
+  // =========================================================
+  // LANGUAGES
+  // =========================================================
+
   const loadLanguages = async () => {
     setLanguagesLoading(true);
     setMessage("");
 
     try {
-      const response = await fetch(
-        `${API_URL}/languages`
-      );
+      const response =
+        await fetch(API.languages);
 
       const data =
-        await response.json();
-
-      console.log(
-        "Languages response:",
-        data
-      );
+        await parseResponse(response);
 
       if (!response.ok) {
         setMessage(
-          data.detail ||
-            "Languages load nahi ho rahi hain."
+          typeof data === "object"
+            ? data.detail ||
+                "Languages load nahi ho rahi hain."
+            : "Languages load nahi ho rahi hain."
         );
         return;
       }
 
       setLanguages(
-        data.languages || []
+        Array.isArray(data.languages)
+          ? data.languages
+          : []
       );
     } catch (error) {
       console.error(
@@ -843,9 +879,10 @@ function App() {
     }
   };
 
-  // ==================================================
+  // =========================================================
   // OPEN TRANSLATION
-  // ==================================================
+  // =========================================================
+
   const openTranslation = () => {
     setTranslationOpen(true);
     setTranslationResult("");
@@ -857,9 +894,10 @@ function App() {
     }
   };
 
-  // ==================================================
-  // TRANSLATE TEXT
-  // ==================================================
+  // =========================================================
+  // TRANSLATE
+  // =========================================================
+
   const handleTranslate = async () => {
     if (!translationText.trim()) {
       setMessage(
@@ -884,9 +922,8 @@ function App() {
     setMessage("");
 
     try {
-      const response = await fetch(
-        `${API_URL}/translate`,
-        {
+      const response =
+        await fetch(API.translate, {
           method: "POST",
           headers: {
             "Content-Type":
@@ -899,21 +936,17 @@ function App() {
             target_language:
               targetLanguage,
           }),
-        }
-      );
+        });
 
       const data =
-        await response.json();
-
-      console.log(
-        "Translation response:",
-        data
-      );
+        await parseResponse(response);
 
       if (!response.ok) {
         setMessage(
-          data.detail ||
-            "Translation failed."
+          typeof data === "object"
+            ? data.detail ||
+                "Translation failed."
+            : "Translation failed."
         );
         return;
       }
@@ -935,28 +968,27 @@ function App() {
     }
   };
 
-  // ==================================================
+  // =========================================================
   // SWAP LANGUAGES
-  // ==================================================
+  // =========================================================
+
   const swapLanguages = () => {
-    setSourceLanguage(
-      targetLanguage
-    );
-    setTargetLanguage(
-      sourceLanguage
-    );
+    setSourceLanguage(targetLanguage);
+    setTargetLanguage(sourceLanguage);
 
     if (translationResult) {
       setTranslationText(
         translationResult
       );
+
       setTranslationResult("");
     }
   };
 
-  // ==================================================
+  // =========================================================
   // CLOSE TRANSLATION
-  // ==================================================
+  // =========================================================
+
   const closeTranslation = () => {
     setTranslationOpen(false);
     setTranslationText("");
@@ -964,9 +996,10 @@ function App() {
     setMessage("");
   };
 
-  // ==================================================
+  // =========================================================
   // LOGOUT
-  // ==================================================
+  // =========================================================
+
   const handleLogout = () => {
     localStorage.removeItem(
       "access_token"
@@ -976,11 +1009,13 @@ function App() {
 
     setAchievements(null);
     setShowAchievements(false);
+
     setCertificates(null);
     setShowCertificates(false);
 
     setSubjects(null);
     setLessons(null);
+
     setSelectedSubject(null);
     setSelectedLesson(null);
 
@@ -997,17 +1032,19 @@ function App() {
     setMessage("");
   };
 
-  // ==================================================
+  // =========================================================
   // ACHIEVEMENTS SCREEN
-  // ==================================================
-  if (dashboard && showAchievements) {
+  // =========================================================
+
+  if (
+    dashboard &&
+    showAchievements
+  ) {
     return (
       <AppShell
         dashboard={dashboard}
         active="achievements"
-        onDashboard={() => {
-          closeAchievements();
-        }}
+        onDashboard={closeAchievements}
         onSubjects={loadSubjects}
         onTranslation={openTranslation}
         onAchievements={openAchievements}
@@ -1022,29 +1059,63 @@ function App() {
         />
 
         {achievementsLoading ? (
-          <LoadingCard icon="🏆" title="Loading achievements..." />
-        ) : Array.isArray(achievements) && achievements.length > 0 ? (
+          <LoadingCard
+            icon="🏆"
+            title="Loading achievements..."
+          />
+        ) : Array.isArray(
+            achievements
+          ) &&
+          achievements.length > 0 ? (
           <div className="achievement-grid">
-            {achievements.map((achievement) => (
-              <article className="achievement-card" key={achievement.id}>
-                <div className="achievement-icon">🏆</div>
-                <div className="achievement-content">
-                  <span className="status-pill success">Unlocked</span>
-                  <h3>{achievement.title || achievement.name || "Learning Achievement"}</h3>
-                  <p>{achievement.description || "Learning achievement unlocked."}</p>
-                  {achievement.earned_at && (
-                    <span className="meta-text">
-                      Earned {new Date(achievement.earned_at).toLocaleDateString()}
+            {achievements.map(
+              (achievement) => (
+                <article
+                  className="achievement-card"
+                  key={achievement.id}
+                >
+                  <div className="achievement-icon">
+                    🏆
+                  </div>
+
+                  <div className="achievement-content">
+                    <span className="status-pill success">
+                      Unlocked
                     </span>
-                  )}
-                  {!achievement.earned_at && achievement.unlocked_at && (
-                    <span className="meta-text">
-                      Unlocked {new Date(achievement.unlocked_at).toLocaleDateString()}
-                    </span>
-                  )}
-                </div>
-              </article>
-            ))}
+
+                    <h3>
+                      {achievement.title ||
+                        achievement.name ||
+                        "Learning Achievement"}
+                    </h3>
+
+                    <p>
+                      {achievement.description ||
+                        "Learning achievement unlocked."}
+                    </p>
+
+                    {achievement.earned_at && (
+                      <span className="meta-text">
+                        Earned{" "}
+                        {new Date(
+                          achievement.earned_at
+                        ).toLocaleDateString()}
+                      </span>
+                    )}
+
+                    {!achievement.earned_at &&
+                      achievement.unlocked_at && (
+                        <span className="meta-text">
+                          Unlocked{" "}
+                          {new Date(
+                            achievement.unlocked_at
+                          ).toLocaleDateString()}
+                        </span>
+                      )}
+                  </div>
+                </article>
+              )
+            )}
           </div>
         ) : (
           <EmptyState
@@ -1054,15 +1125,23 @@ function App() {
           />
         )}
 
-        {message && <Alert type="error">{message}</Alert>}
+        {message && (
+          <Alert type="error">
+            {message}
+          </Alert>
+        )}
       </AppShell>
     );
   }
 
-  // ==================================================
+  // =========================================================
   // CERTIFICATES SCREEN
-  // ==================================================
-  if (dashboard && showCertificates) {
+  // =========================================================
+
+  if (
+    dashboard &&
+    showCertificates
+  ) {
     return (
       <AppShell
         dashboard={dashboard}
@@ -1082,32 +1161,97 @@ function App() {
         />
 
         {certificatesLoading ? (
-          <LoadingCard icon="🎓" title="Loading certificates..." />
-        ) : Array.isArray(certificates) && certificates.length > 0 ? (
+          <LoadingCard
+            icon="🎓"
+            title="Loading certificates..."
+          />
+        ) : Array.isArray(
+            certificates
+          ) &&
+          certificates.length > 0 ? (
           <div className="certificate-grid">
-            {certificates.map((certificate) => (
-              <article className="certificate-card" key={certificate.id || certificate.certificate_id}>
-                <div className="certificate-ribbon">VERNACULAR EDUCATION</div>
-                <div className="certificate-emblem">🎓</div>
-                <span className="status-pill success">Certificate Earned</span>
-                <h3>{certificate.title || "Certificate of Completion"}</h3>
-                <p className="certificate-description">
-                  {certificate.description || "Certificate earned after successfully completing the lesson quiz."}
-                </p>
-                <div className="certificate-info">
-                  <div><span>Certificate ID</span><strong>{certificate.certificate_id || "—"}</strong></div>
-                  <div><span>Quiz Score</span><strong>{certificate.score ?? 0}%</strong></div>
-                  <div><span>Issued</span><strong>{certificate.issued_at ? new Date(certificate.issued_at).toLocaleDateString() : "—"}</strong></div>
-                </div>
-                <button
-                  type="button"
-                  className="btn btn-primary btn-full"
-                  onClick={() => handleDownloadCertificate(certificate)}
+            {certificates.map(
+              (certificate) => (
+                <article
+                  className="certificate-card"
+                  key={
+                    certificate.id ||
+                    certificate.certificate_id
+                  }
                 >
-                  📥 Download Certificate PDF
-                </button>
-              </article>
-            ))}
+                  <div className="certificate-ribbon">
+                    VERNACULAR EDUCATION
+                  </div>
+
+                  <div className="certificate-emblem">
+                    🎓
+                  </div>
+
+                  <span className="status-pill success">
+                    Certificate Earned
+                  </span>
+
+                  <h3>
+                    {certificate.title ||
+                      "Certificate of Completion"}
+                  </h3>
+
+                  <p className="certificate-description">
+                    {certificate.description ||
+                      "Certificate earned after successfully completing the lesson quiz."}
+                  </p>
+
+                  <div className="certificate-info">
+                    <div>
+                      <span>
+                        Certificate ID
+                      </span>
+
+                      <strong>
+                        {certificate.certificate_id ||
+                          "—"}
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span>
+                        Quiz Score
+                      </span>
+
+                      <strong>
+                        {certificate.score ??
+                          0}
+                        %
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span>Issued</span>
+
+                      <strong>
+                        {certificate.issued_at
+                          ? new Date(
+                              certificate.issued_at
+                            ).toLocaleDateString()
+                          : "—"}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-full"
+                    onClick={() =>
+                      handleDownloadCertificate(
+                        certificate
+                      )
+                    }
+                  >
+                    📥 Download Certificate PDF
+                  </button>
+                </article>
+              )
+            )}
           </div>
         ) : (
           <EmptyState
@@ -1117,15 +1261,23 @@ function App() {
           />
         )}
 
-        {message && <Alert type="error">{message}</Alert>}
+        {message && (
+          <Alert type="error">
+            {message}
+          </Alert>
+        )}
       </AppShell>
     );
   }
 
-  // ==================================================
+  // =========================================================
   // TRANSLATION SCREEN
-  // ==================================================
-  if (dashboard && translationOpen) {
+  // =========================================================
+
+  if (
+    dashboard &&
+    translationOpen
+  ) {
     return (
       <AppShell
         dashboard={dashboard}
@@ -1147,76 +1299,208 @@ function App() {
         <section className="translation-workspace">
           <div className="translation-toolbar">
             <div className="language-select-group">
-              <label>From language</label>
-              <select value={sourceLanguage} onChange={(event) => setSourceLanguage(event.target.value)} disabled={languagesLoading}>
-                {languages.map((language) => (
-                  <option key={language.code} value={language.code}>{language.name}</option>
-                ))}
+              <label>
+                From language
+              </label>
+
+              <select
+                value={sourceLanguage}
+                onChange={(event) =>
+                  setSourceLanguage(
+                    event.target.value
+                  )
+                }
+                disabled={
+                  languagesLoading
+                }
+              >
+                {languages.map(
+                  (language) => (
+                    <option
+                      key={language.code}
+                      value={
+                        language.code
+                      }
+                    >
+                      {language.name}
+                    </option>
+                  )
+                )}
               </select>
             </div>
 
-            <button type="button" className="swap-button" onClick={swapLanguages} title="Swap languages">⇄</button>
+            <button
+              type="button"
+              className="swap-button"
+              onClick={
+                swapLanguages
+              }
+              title="Swap languages"
+            >
+              ⇄
+            </button>
 
             <div className="language-select-group">
-              <label>To language</label>
-              <select value={targetLanguage} onChange={(event) => setTargetLanguage(event.target.value)} disabled={languagesLoading}>
-                {languages.map((language) => (
-                  <option key={language.code} value={language.code}>{language.name}</option>
-                ))}
+              <label>
+                To language
+              </label>
+
+              <select
+                value={targetLanguage}
+                onChange={(event) =>
+                  setTargetLanguage(
+                    event.target.value
+                  )
+                }
+                disabled={
+                  languagesLoading
+                }
+              >
+                {languages.map(
+                  (language) => (
+                    <option
+                      key={language.code}
+                      value={
+                        language.code
+                      }
+                    >
+                      {language.name}
+                    </option>
+                  )
+                )}
               </select>
             </div>
           </div>
 
           {languagesLoading ? (
-            <LoadingCard icon="🌐" title="Loading supported languages..." />
+            <LoadingCard
+              icon="🌐"
+              title="Loading supported languages..."
+            />
           ) : (
             <div className="translation-panels">
               <div className="translation-panel">
                 <div className="panel-heading">
                   <div>
-                    <span className="panel-kicker">SOURCE</span>
-                    <h3>Enter learning content</h3>
+                    <span className="panel-kicker">
+                      SOURCE
+                    </span>
+
+                    <h3>
+                      Enter learning content
+                    </h3>
                   </div>
-                  <span className="panel-badge">✎</span>
+
+                  <span className="panel-badge">
+                    ✎
+                  </span>
                 </div>
+
                 <textarea
                   value={translationText}
-                  onChange={(event) => setTranslationText(event.target.value)}
+                  onChange={(event) =>
+                    setTranslationText(
+                      event.target.value
+                    )
+                  }
                   placeholder="Type a sentence, lesson content, or learning material..."
                 />
-                <div className="character-count">{translationText.length} characters</div>
+
+                <div className="character-count">
+                  {translationText.length}{" "}
+                  characters
+                </div>
               </div>
 
               <div className="translation-panel result-panel">
                 <div className="panel-heading">
                   <div>
-                    <span className="panel-kicker">TRANSLATED OUTPUT</span>
-                    <h3>Learning-ready result</h3>
+                    <span className="panel-kicker">
+                      TRANSLATED OUTPUT
+                    </span>
+
+                    <h3>
+                      Learning-ready result
+                    </h3>
                   </div>
-                  <span className="panel-badge result">✓</span>
+
+                  <span className="panel-badge result">
+                    ✓
+                  </span>
                 </div>
+
                 <div className="translation-result">
-                  {translationResult || "Your translated content will appear here..."}
+                  {translationResult ||
+                    "Your translated content will appear here..."}
                 </div>
               </div>
             </div>
           )}
 
-          {message && <Alert type="error">{message}</Alert>}
+          {message && (
+            <Alert type="error">
+              {message}
+            </Alert>
+          )}
 
-          <button type="button" className="btn btn-success btn-large" onClick={handleTranslate} disabled={translationLoading || languagesLoading}>
-            {translationLoading ? "Translating..." : "🌐 Translate Content"}
+          <button
+            type="button"
+            className="btn btn-success btn-large"
+            onClick={handleTranslate}
+            disabled={
+              translationLoading ||
+              languagesLoading
+            }
+          >
+            {translationLoading
+              ? "Translating..."
+              : "🌐 Translate Content"}
           </button>
         </section>
       </AppShell>
     );
   }
 
-  // ==================================================
+  // =========================================================
   // QUIZ RESULT SCREEN
-  // ==================================================
-  if (selectedLesson && quizResult) {
-    const score = Number(quizResult.score || 0);
+  // =========================================================
+
+  if (
+    selectedLesson &&
+    quizResult
+  ) {
+    const totalQuestions = Math.max(
+      0,
+      Number(
+        quizResult.total_questions ||
+          0
+      )
+    );
+
+    const correctAnswers = Math.max(
+      0,
+      Number(
+        quizResult.correct_answers ||
+          0
+      )
+    );
+
+    // Prefer backend score.
+    // If score is missing, calculate from answers.
+    const calculatedScore =
+      totalQuestions > 0
+        ? Math.round(
+            (correctAnswers /
+              totalQuestions) *
+              100
+          )
+        : 0;
+
+    const score = clampPercentage(
+      quizResult.score ??
+        calculatedScore
+    );
+
     const passed = score >= 50;
 
     return (
@@ -1231,26 +1515,99 @@ function App() {
         onLogout={handleLogout}
       >
         <section className="result-page">
-          <div className={`result-card ${passed ? "passed" : "needs-work"}`}>
-            <div className="result-icon">{passed ? "🎉" : "📚"}</div>
-            <span className={`status-pill ${passed ? "success" : "warning"}`}>
-              {passed ? "Quiz Passed" : "Keep Learning"}
-            </span>
-            <h1>{passed ? "Quiz Completed!" : "Quiz Completed"}</h1>
-            <p className="result-subtitle">{selectedLesson.title}</p>
-
-            <div className="score-ring">
-              <strong>{score}%</strong>
-              <span>Score</span>
+          <div
+            className={`result-card ${
+              passed
+                ? "passed"
+                : "needs-work"
+            }`}
+          >
+            <div className="result-icon">
+              {passed ? "🎉" : "📚"}
             </div>
+
+            <span
+              className={`status-pill ${
+                passed
+                  ? "success"
+                  : "warning"
+              }`}
+            >
+              {passed
+                ? "Quiz Passed"
+                : "Keep Learning"}
+            </span>
+
+            <h1>
+              {passed
+                ? "Quiz Completed!"
+                : "Quiz Completed"}
+            </h1>
+
+            <p className="result-subtitle">
+              {selectedLesson.title}
+            </p>
+
+            {/* =================================================
+                PROFESSIONAL SCORE RING
+                SVG is used so the percentage is mathematically
+                accurate and independent from CSS gradients.
+            ================================================== */}
+
+            <ScoreRing
+              score={score}
+              passed={passed}
+            />
 
             <div className="result-stats">
-              <div><strong>{quizResult.total_questions ?? 0}</strong><span>Total Questions</span></div>
-              <div><strong>{quizResult.correct_answers ?? 0}</strong><span>Correct Answers</span></div>
+              <div>
+                <strong>
+                  {totalQuestions}
+                </strong>
+
+                <span>
+                  Total Questions
+                </span>
+              </div>
+
+              <div>
+                <strong>
+                  {correctAnswers}
+                </strong>
+
+                <span>
+                  Correct Answers
+                </span>
+              </div>
+
+              <div>
+                <strong>
+                  {Math.max(
+                    0,
+                    totalQuestions -
+                      correctAnswers
+                  )}
+                </strong>
+
+                <span>
+                  Incorrect
+                </span>
+              </div>
             </div>
 
-            <div className={`result-message ${passed ? "success" : "warning"}`}>
-              <strong>{passed ? "🏆 Congratulations!" : "📖 Keep practicing!"}</strong>
+            <div
+              className={`result-message ${
+                passed
+                  ? "success"
+                  : "warning"
+              }`}
+            >
+              <strong>
+                {passed
+                  ? "🏆 Congratulations!"
+                  : "📖 Keep practicing!"}
+              </strong>
+
               <p>
                 {passed
                   ? "Your progress, achievement and certificate have been processed by the platform."
@@ -1259,10 +1616,35 @@ function App() {
             </div>
 
             <div className="result-actions">
-              <button type="button" className="btn btn-secondary" onClick={exitQuiz}>← Back to Lesson</button>
-              <button type="button" className="btn btn-primary" onClick={() => { setQuizResult(null); startQuiz(); }}>🔄 Retake Quiz</button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={exitQuiz}
+              >
+                ← Back to Lesson
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  setQuizResult(null);
+                  startQuiz();
+                }}
+              >
+                🔄 Retake Quiz
+              </button>
+
               {passed && (
-                <button type="button" className="btn btn-outline" onClick={openCertificates}>🎓 View Certificate</button>
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  onClick={
+                    openCertificates
+                  }
+                >
+                  🎓 View Certificate
+                </button>
               )}
             </div>
           </div>
@@ -1271,12 +1653,28 @@ function App() {
     );
   }
 
-  // ==================================================
+  // =========================================================
   // QUIZ SCREEN
-  // ==================================================
-  if (selectedLesson && quizQuestions !== null) {
-    const answeredCount = quizQuestions.filter((question) => quizAnswers[question.id]).length;
-    const progress = quizQuestions.length ? Math.round((answeredCount / quizQuestions.length) * 100) : 0;
+  // =========================================================
+
+  if (
+    selectedLesson &&
+    quizQuestions !== null
+  ) {
+    const answeredCount =
+      quizQuestions.filter(
+        (question) =>
+          quizAnswers[question.id]
+      ).length;
+
+    const progress =
+      quizQuestions.length > 0
+        ? Math.round(
+            (answeredCount /
+              quizQuestions.length) *
+              100
+          )
+        : 0;
 
     return (
       <AppShell
@@ -1292,69 +1690,158 @@ function App() {
         <div className="quiz-shell">
           <div className="quiz-top-card">
             <div>
-              <span className="panel-kicker">KNOWLEDGE CHECK</span>
-              <h1>📝 {selectedLesson.title} Quiz</h1>
-              <p>Answer all questions and submit when you are ready.</p>
+              <span className="panel-kicker">
+                KNOWLEDGE CHECK
+              </span>
+
+              <h1>
+                📝 {selectedLesson.title} Quiz
+              </h1>
+
+              <p>
+                Answer all questions and
+                submit when you are ready.
+              </p>
             </div>
+
             <div className="quiz-progress-summary">
-              <strong>{answeredCount}/{quizQuestions.length}</strong>
-              <span>Answered</span>
+              <strong>
+                {answeredCount}/
+                {quizQuestions.length}
+              </strong>
+
+              <span>
+                Answered
+              </span>
             </div>
           </div>
 
           <div className="quiz-progress-bar">
-            <span style={{ width: `${progress}%` }} />
+            <span
+              style={{
+                width: `${progress}%`,
+              }}
+            />
           </div>
 
-          {quizQuestions.map((question, index) => {
-            const selectedAnswer = quizAnswers[question.id];
-            const options = [
-              { key: "A", text: question.option_a },
-              { key: "B", text: question.option_b },
-              { key: "C", text: question.option_c },
-              { key: "D", text: question.option_d },
-            ];
+          {quizQuestions.map(
+            (question, index) => {
+              const selectedAnswer =
+                quizAnswers[
+                  question.id
+                ];
 
-            return (
-              <article className="question-card" key={question.id}>
-                <div className="question-number">Q{index + 1}</div>
-                <div className="question-body">
-                  <h2>{question.question}</h2>
-                  <div className="quiz-options">
-                    {options.map((option) => {
-                      const selected = selectedAnswer === option.key;
-                      return (
-                        <button
-                          type="button"
-                          className={`quiz-option ${selected ? "selected" : ""}`}
-                          key={option.key}
-                          onClick={() => selectAnswer(question.id, option.key)}
-                        >
-                          <span className="option-key">{option.key}</span>
-                          <span>{option.text}</span>
-                          {selected && <span className="option-check">✓</span>}
-                        </button>
-                      );
-                    })}
+              const options = [
+                {
+                  key: "A",
+                  text: question.option_a,
+                },
+                {
+                  key: "B",
+                  text: question.option_b,
+                },
+                {
+                  key: "C",
+                  text: question.option_c,
+                },
+                {
+                  key: "D",
+                  text: question.option_d,
+                },
+              ];
+
+              return (
+                <article
+                  className="question-card"
+                  key={question.id}
+                >
+                  <div className="question-number">
+                    Q{index + 1}
                   </div>
-                </div>
-              </article>
-            );
-          })}
 
-          {message && <Alert type="error">{message}</Alert>}
+                  <div className="question-body">
+                    <h2>
+                      {question.question}
+                    </h2>
 
-          <button type="button" className="btn btn-primary btn-large" onClick={submitQuiz} disabled={quizSubmitting}>
-            {quizSubmitting ? "Submitting Quiz..." : "Submit Quiz ✓"}
+                    <div className="quiz-options">
+                      {options.map(
+                        (option) => {
+                          const selected =
+                            selectedAnswer ===
+                            option.key;
+
+                          return (
+                            <button
+                              type="button"
+                              className={`quiz-option ${
+                                selected
+                                  ? "selected"
+                                  : ""
+                              }`}
+                              key={
+                                option.key
+                              }
+                              onClick={() =>
+                                selectAnswer(
+                                  question.id,
+                                  option.key
+                                )
+                              }
+                            >
+                              <span className="option-key">
+                                {
+                                  option.key
+                                }
+                              </span>
+
+                              <span>
+                                {
+                                  option.text
+                                }
+                              </span>
+
+                              {selected && (
+                                <span className="option-check">
+                                  ✓
+                                </span>
+                              )}
+                            </button>
+                          );
+                        }
+                      )}
+                    </div>
+                  </div>
+                </article>
+              );
+            }
+          )}
+
+          {message && (
+            <Alert type="error">
+              {message}
+            </Alert>
+          )}
+
+          <button
+            type="button"
+            className="btn btn-primary btn-large"
+            onClick={submitQuiz}
+            disabled={quizSubmitting}
+          >
+            {quizSubmitting
+              ? "Submitting Quiz..."
+              : "Submit Quiz ✓"}
           </button>
         </div>
       </AppShell>
     );
   }
 
-  // ==================================================
-  // LESSON DETAIL SCREEN
-  // ==================================================
+  // =========================================================
+  // LESSON DETAIL
+  // =========================================================
+
   if (selectedLesson) {
     return (
       <AppShell
@@ -1375,52 +1862,104 @@ function App() {
       >
         <section className="lesson-detail">
           <div className="lesson-detail-header">
-            <div className="lesson-cover-icon">📖</div>
+            <div className="lesson-cover-icon">
+              📖
+            </div>
+
             <div>
-              <span className="panel-kicker">LESSON</span>
-              <h1>{selectedLesson.title}</h1>
-              <p>{selectedLesson.description || "Continue your learning journey with this lesson."}</p>
+              <span className="panel-kicker">
+                LESSON
+              </span>
+
+              <h1>
+                {selectedLesson.title}
+              </h1>
+
+              <p>
+                {selectedLesson.description ||
+                  "Continue your learning journey with this lesson."}
+              </p>
             </div>
           </div>
 
           <div className="lesson-meta-row">
-            <span>🌐 {selectedLesson.language || "Mother Tongue"}</span>
-            <span>📚 {selectedSubject?.name || "Learning"}</span>
-            <span>✓ Quiz available</span>
+            <span>
+              🌐{" "}
+              {selectedLesson.language ||
+                "Mother Tongue"}
+            </span>
+
+            <span>
+              📚{" "}
+              {selectedSubject?.name ||
+                "Learning"}
+            </span>
+
+            <span>
+              ✓ Quiz available
+            </span>
           </div>
 
           <article className="lesson-content-card">
-            <div className="content-label">LESSON CONTENT</div>
+            <div className="content-label">
+              LESSON CONTENT
+            </div>
+
             <div className="lesson-content">
-              {selectedLesson.content || "Lesson content abhi available nahi hai."}
+              {selectedLesson.content ||
+                "Lesson content abhi available nahi hai."}
             </div>
           </article>
 
           <div className="lesson-action-card">
             <div>
-              <strong>Ready to check your understanding?</strong>
-              <p>Complete the quiz to track progress and unlock achievements and certificates.</p>
+              <strong>
+                Ready to check your
+                understanding?
+              </strong>
+
+              <p>
+                Complete the quiz to track
+                progress and unlock
+                achievements and
+                certificates.
+              </p>
             </div>
-            <button type="button" className="btn btn-primary" onClick={startQuiz} disabled={quizLoading}>
-              {quizLoading ? "Loading Quiz..." : "📝 Start Quiz"}
+
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={startQuiz}
+              disabled={quizLoading}
+            >
+              {quizLoading
+                ? "Loading Quiz..."
+                : "📝 Start Quiz"}
             </button>
           </div>
 
-          {message && <Alert type="error">{message}</Alert>}
+          {message && (
+            <Alert type="error">
+              {message}
+            </Alert>
+          )}
         </section>
       </AppShell>
     );
   }
 
-  // ==================================================
+  // =========================================================
   // LESSONS SCREEN
-  // ==================================================
+  // =========================================================
+
   if (lessons !== null) {
     return (
       <AppShell
         dashboard={dashboard}
         active="subjects"
-        onDashboard={() => setLessons(null)}
+        onDashboard={() =>
+          setLessons(null)
+        }
         onSubjects={loadSubjects}
         onTranslation={openTranslation}
         onAchievements={openAchievements}
@@ -1429,48 +1968,101 @@ function App() {
       >
         <PageHeader
           eyebrow="LEARNING PATH"
-          title={selectedSubject ? selectedSubject.name : "Lessons"}
+          title={
+            selectedSubject
+              ? selectedSubject.name
+              : "Lessons"
+          }
           description="Choose a lesson and continue learning at your own pace."
           icon="📚"
         />
 
         {lessonsLoading ? (
-          <LoadingCard icon="📚" title="Loading lessons..." />
+          <LoadingCard
+            icon="📚"
+            title="Loading lessons..."
+          />
         ) : lessons.length > 0 ? (
           <div className="lesson-grid">
-            {lessons.map((lesson, index) => (
-              <article className="lesson-card" key={lesson.id}>
-                <div className="lesson-card-top">
-                  <span className="lesson-index">{String(index + 1).padStart(2, "0")}</span>
-                  <span className="lesson-language">🌐 {lesson.language || "Hindi"}</span>
-                </div>
-                <h3>{lesson.title}</h3>
-                <p>{lesson.description || "Start learning this lesson."}</p>
-                <div className="card-footer">
-                  <span>Interactive lesson</span>
-                  <button type="button" className="btn btn-primary btn-small" onClick={() => openLesson(lesson)}>Open Lesson →</button>
-                </div>
-              </article>
-            ))}
+            {lessons.map(
+              (lesson, index) => (
+                <article
+                  className="lesson-card"
+                  key={lesson.id}
+                >
+                  <div className="lesson-card-top">
+                    <span className="lesson-index">
+                      {String(
+                        index + 1
+                      ).padStart(2, "0")}
+                    </span>
+
+                    <span className="lesson-language">
+                      🌐{" "}
+                      {lesson.language ||
+                        "Hindi"}
+                    </span>
+                  </div>
+
+                  <h3>
+                    {lesson.title}
+                  </h3>
+
+                  <p>
+                    {lesson.description ||
+                      "Start learning this lesson."}
+                  </p>
+
+                  <div className="card-footer">
+                    <span>
+                      Interactive lesson
+                    </span>
+
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-small"
+                      onClick={() =>
+                        openLesson(
+                          lesson
+                        )
+                      }
+                    >
+                      Open Lesson →
+                    </button>
+                  </div>
+                </article>
+              )
+            )}
           </div>
         ) : (
-          <EmptyState icon="📖" title="No lessons found" text="There are no lessons available for this subject yet." />
+          <EmptyState
+            icon="📖"
+            title="No lessons found"
+            text="There are no lessons available for this subject yet."
+          />
         )}
 
-        {message && <Alert type="error">{message}</Alert>}
+        {message && (
+          <Alert type="error">
+            {message}
+          </Alert>
+        )}
       </AppShell>
     );
   }
 
-  // ==================================================
+  // =========================================================
   // SUBJECTS SCREEN
-  // ==================================================
+  // =========================================================
+
   if (subjects !== null) {
     return (
       <AppShell
         dashboard={dashboard}
         active="subjects"
-        onDashboard={() => setSubjects(null)}
+        onDashboard={() =>
+          setSubjects(null)
+        }
         onSubjects={loadSubjects}
         onTranslation={openTranslation}
         onAchievements={openAchievements}
@@ -1485,36 +2077,101 @@ function App() {
         />
 
         {subjectsLoading ? (
-          <LoadingCard icon="📚" title="Loading subjects..." />
-        ) : Array.isArray(subjects) && subjects.length > 0 ? (
+          <LoadingCard
+            icon="📚"
+            title="Loading subjects..."
+          />
+        ) : Array.isArray(
+            subjects
+          ) &&
+          subjects.length > 0 ? (
           <div className="subject-grid">
-            {subjects.map((subject, index) => (
-              <article className="subject-card" key={subject.id}>
-                <div className="subject-icon">{index % 3 === 0 ? "📐" : index % 3 === 1 ? "🔬" : "📖"}</div>
-                <span className="subject-number">SUBJECT {String(index + 1).padStart(2, "0")}</span>
-                <h3>{subject.name}</h3>
-                <p>{subject.description || "Start learning this subject."}</p>
-                <button type="button" className="btn btn-primary btn-full" onClick={() => loadLessons(subject)} disabled={lessonsLoading}>
-                  {lessonsLoading ? "Loading..." : "View Lessons →"}
-                </button>
-              </article>
-            ))}
+            {subjects.map(
+              (subject, index) => (
+                <article
+                  className="subject-card"
+                  key={subject.id}
+                >
+                  <div className="subject-icon">
+                    {index % 3 === 0
+                      ? "📐"
+                      : index % 3 === 1
+                      ? "🔬"
+                      : "📖"}
+                  </div>
+
+                  <span className="subject-number">
+                    SUBJECT{" "}
+                    {String(
+                      index + 1
+                    ).padStart(2, "0")}
+                  </span>
+
+                  <h3>
+                    {subject.name}
+                  </h3>
+
+                  <p>
+                    {subject.description ||
+                      "Start learning this subject."}
+                  </p>
+
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-full"
+                    onClick={() =>
+                      loadLessons(
+                        subject
+                      )
+                    }
+                    disabled={
+                      lessonsLoading
+                    }
+                  >
+                    {lessonsLoading
+                      ? "Loading..."
+                      : "View Lessons →"}
+                  </button>
+                </article>
+              )
+            )}
           </div>
         ) : (
-          <EmptyState icon="📚" title="No subjects available" text="Add learning subjects from the backend to start building the curriculum." />
+          <EmptyState
+            icon="📚"
+            title="No subjects available"
+            text="Add learning subjects from the backend to start building the curriculum."
+          />
         )}
 
-        {message && <Alert type="error">{message}</Alert>}
+        {message && (
+          <Alert type="error">
+            {message}
+          </Alert>
+        )}
       </AppShell>
     );
   }
 
-  // ==================================================
+  // =========================================================
   // DASHBOARD
-  // ==================================================
+  // =========================================================
+
   if (dashboard) {
-    const firstName = (dashboard.name || "Learner").split(" ")[0];
-    const progress = Math.max(0, Math.min(100, Number(dashboard.overall_progress || 0)));
+    const firstName = (
+      dashboard.name ||
+      "Learner"
+    ).split(" ")[0];
+
+    const progress =
+      clampPercentage(
+        dashboard.overall_progress
+      );
+
+    const averageQuizScore =
+      clampPercentage(
+        dashboard.average_quiz_score
+      );
 
     return (
       <AppShell
@@ -1529,72 +2186,277 @@ function App() {
       >
         <section className="hero-card">
           <div className="hero-content">
-            <span className="hero-kicker">AI-POWERED VERNACULAR LEARNING</span>
-            <h1>Welcome back, {firstName}! 👋</h1>
-            <p>Learn concepts in your preferred language, practice with quizzes, and build measurable progress.</p>
+            <span className="hero-kicker">
+              AI-POWERED VERNACULAR
+              LEARNING
+            </span>
+
+            <h1>
+              Welcome back,{" "}
+              {firstName}! 👋
+            </h1>
+
+            <p>
+              Learn concepts in your
+              preferred language, practice
+              with quizzes, and build
+              measurable progress.
+            </p>
+
             <div className="hero-actions">
-              <button type="button" className="btn btn-light" onClick={loadSubjects}>📚 Explore Subjects</button>
-              <button type="button" className="btn btn-ghost-light" onClick={openTranslation}>🌐 Translate Content</button>
+              <button
+                type="button"
+                className="btn btn-light"
+                onClick={
+                  loadSubjects
+                }
+              >
+                📚 Explore Subjects
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-ghost-light"
+                onClick={
+                  openTranslation
+                }
+              >
+                🌐 Translate Content
+              </button>
             </div>
           </div>
-          <div className="hero-orbit" aria-hidden="true">
+
+          <div
+            className="hero-orbit"
+            aria-hidden="true"
+          >
             <div className="orbit-ring ring-one" />
             <div className="orbit-ring ring-two" />
-            <div className="hero-orbit-center">🌐</div>
-            <span className="orbit-dot dot-one">अ</span>
-            <span className="orbit-dot dot-two">A</span>
-            <span className="orbit-dot dot-three">क</span>
+
+            <div className="hero-orbit-center">
+              🌐
+            </div>
+
+            <span className="orbit-dot dot-one">
+              अ
+            </span>
+
+            <span className="orbit-dot dot-two">
+              A
+            </span>
+
+            <span className="orbit-dot dot-three">
+              क
+            </span>
           </div>
         </section>
 
         <section className="stat-grid">
-          <StatCard icon="📚" label="Total Lessons" value={dashboard.total_lessons} tone="blue" />
-          <StatCard icon="✓" label="Completed Lessons" value={dashboard.completed_lessons} tone="green" />
-          <StatCard icon="🎯" label="Quiz Attempts" value={dashboard.total_quiz_attempts} tone="orange" />
-          <StatCard icon="🏆" label="Achievements" value={dashboard.total_achievements} tone="purple" clickable onClick={openAchievements} />
+          <StatCard
+            icon="📚"
+            label="Total Lessons"
+            value={
+              dashboard.total_lessons
+            }
+            tone="blue"
+          />
+
+          <StatCard
+            icon="✓"
+            label="Completed Lessons"
+            value={
+              dashboard.completed_lessons
+            }
+            tone="green"
+          />
+
+          <StatCard
+            icon="🎯"
+            label="Quiz Attempts"
+            value={
+              dashboard.total_quiz_attempts
+            }
+            tone="orange"
+          />
+
+          <StatCard
+            icon="🏆"
+            label="Achievements"
+            value={
+              dashboard.total_achievements
+            }
+            tone="purple"
+            clickable
+            onClick={
+              openAchievements
+            }
+          />
         </section>
 
         <section className="dashboard-main-grid">
           <article className="panel progress-panel">
             <div className="panel-heading">
               <div>
-                <span className="panel-kicker">YOUR LEARNING JOURNEY</span>
-                <h2>Overall Progress</h2>
+                <span className="panel-kicker">
+                  YOUR LEARNING JOURNEY
+                </span>
+
+                <h2>
+                  Overall Progress
+                </h2>
               </div>
-              <span className="progress-percentage">{progress}%</span>
+
+              <span className="progress-percentage">
+                {progress}%
+              </span>
             </div>
-            <div className="large-progress"><span style={{ width: `${progress}%` }} /></div>
+
+            <div className="large-progress">
+              <span
+                style={{
+                  width: `${progress}%`,
+                }}
+              />
+            </div>
+
             <div className="progress-details">
-              <span>{dashboard.completed_lessons} of {dashboard.total_lessons} lessons completed</span>
-              <span>{progress === 100 ? "All lessons completed" : "Keep going — you are making progress"}</span>
+              <span>
+                {
+                  dashboard.completed_lessons
+                }{" "}
+                of{" "}
+                {
+                  dashboard.total_lessons
+                }{" "}
+                lessons completed
+              </span>
+
+              <span>
+                {progress === 100
+                  ? "All lessons completed"
+                  : "Keep going — you are making progress"}
+              </span>
             </div>
 
             <div className="mini-metrics">
-              <div><span>Average Quiz Score</span><strong>{dashboard.average_quiz_score}%</strong></div>
-              <div><span>Certificates</span><strong>{dashboard.total_certificates}</strong></div>
+              <div>
+                <span>
+                  Average Quiz Score
+                </span>
+
+                <strong>
+                  {
+                    dashboard.average_quiz_score
+                  }
+                  %
+                </strong>
+              </div>
+
+              <div>
+                <span>
+                  Certificates
+                </span>
+
+                <strong>
+                  {
+                    dashboard.total_certificates
+                  }
+                </strong>
+              </div>
             </div>
           </article>
 
           <article className="panel quick-panel">
             <div className="panel-heading">
               <div>
-                <span className="panel-kicker">QUICK ACCESS</span>
-                <h2>Continue Learning</h2>
+                <span className="panel-kicker">
+                  QUICK ACCESS
+                </span>
+
+                <h2>
+                  Continue Learning
+                </h2>
               </div>
             </div>
-            <button type="button" className="quick-action" onClick={loadSubjects}>
-              <span className="quick-icon blue">📚</span>
-              <span><strong>Explore Subjects</strong><small>Find your next lesson</small></span>
+
+            <button
+              type="button"
+              className="quick-action"
+              onClick={
+                loadSubjects
+              }
+            >
+              <span className="quick-icon blue">
+                📚
+              </span>
+
+              <span>
+                <strong>
+                  Explore Subjects
+                </strong>
+
+                <small>
+                  Find your next lesson
+                </small>
+              </span>
+
               <b>→</b>
             </button>
-            <button type="button" className="quick-action" onClick={openTranslation}>
-              <span className="quick-icon green">🌐</span>
-              <span><strong>Translation Tool</strong><small>Translate learning content</small></span>
+
+            <button
+              type="button"
+              className="quick-action"
+              onClick={
+                openTranslation
+              }
+            >
+              <span className="quick-icon green">
+                🌐
+              </span>
+
+              <span>
+                <strong>
+                  Translation Tool
+                </strong>
+
+                <small>
+                  Translate learning
+                  content
+                </small>
+              </span>
+
               <b>→</b>
             </button>
-            <button type="button" className="quick-action" onClick={openCertificates}>
-              <span className="quick-icon purple">🎓</span>
-              <span><strong>My Certificates</strong><small>{dashboard.total_certificates} certificate{dashboard.total_certificates === 1 ? "" : "s"} earned</small></span>
+
+            <button
+              type="button"
+              className="quick-action"
+              onClick={
+                openCertificates
+              }
+            >
+              <span className="quick-icon purple">
+                🎓
+              </span>
+
+              <span>
+                <strong>
+                  My Certificates
+                </strong>
+
+                <small>
+                  {
+                    dashboard.total_certificates
+                  }{" "}
+                  certificate
+                  {dashboard.total_certificates ===
+                  1
+                    ? ""
+                    : "s"}{" "}
+                  earned
+                </small>
+              </span>
+
               <b>→</b>
             </button>
           </article>
@@ -1604,185 +2466,781 @@ function App() {
           <article className="panel performance-panel">
             <div className="panel-heading">
               <div>
-                <span className="panel-kicker">PERFORMANCE</span>
-                <h2>Quiz Performance</h2>
+                <span className="panel-kicker">
+                  PERFORMANCE
+                </span>
+
+                <h2>
+                  Quiz Performance
+                </h2>
               </div>
-              <span className="performance-icon">🎯</span>
+
+              <span className="performance-icon">
+                🎯
+              </span>
             </div>
-            <div className="performance-score">{dashboard.average_quiz_score}<span>%</span></div>
-            <p>Average score across your quiz attempts.</p>
-            <div className="score-bar"><span style={{ width: `${Math.max(0, Math.min(100, Number(dashboard.average_quiz_score || 0)))}%` }} /></div>
-            <button type="button" className="text-button" onClick={loadSubjects}>Practice more →</button>
+
+            <div className="performance-score">
+              {
+                dashboard.average_quiz_score
+              }
+              <span>%</span>
+            </div>
+
+            <p>
+              Average score across your
+              quiz attempts.
+            </p>
+
+            <div className="score-bar">
+              <span
+                style={{
+                  width: `${averageQuizScore}%`,
+                }}
+              />
+            </div>
+
+            <button
+              type="button"
+              className="text-button"
+              onClick={
+                loadSubjects
+              }
+            >
+              Practice more →
+            </button>
           </article>
 
-          <button type="button" className="panel credential-panel" onClick={openAchievements}>
-            <div className="credential-icon">🏆</div>
-            <div>
-              <span className="panel-kicker">MILESTONES</span>
-              <h2>Achievements</h2>
-              <p>{dashboard.total_achievements} achievement{dashboard.total_achievements === 1 ? "" : "s"} unlocked.</p>
+          <button
+            type="button"
+            className="panel credential-panel"
+            onClick={
+              openAchievements
+            }
+          >
+            <div className="credential-icon">
+              🏆
             </div>
-            <span className="credential-arrow">→</span>
+
+            <div>
+              <span className="panel-kicker">
+                MILESTONES
+              </span>
+
+              <h2>
+                Achievements
+              </h2>
+
+              <p>
+                {
+                  dashboard.total_achievements
+                }{" "}
+                achievement
+                {dashboard.total_achievements ===
+                1
+                  ? ""
+                  : "s"}{" "}
+                unlocked.
+              </p>
+            </div>
+
+            <span className="credential-arrow">
+              →
+            </span>
           </button>
 
-          <button type="button" className="panel credential-panel" onClick={openCertificates}>
-            <div className="credential-icon certificate">🎓</div>
-            <div>
-              <span className="panel-kicker">CREDENTIALS</span>
-              <h2>Certificates</h2>
-              <p>{dashboard.total_certificates} certificate{dashboard.total_certificates === 1 ? "" : "s"} available to download.</p>
+          <button
+            type="button"
+            className="panel credential-panel"
+            onClick={
+              openCertificates
+            }
+          >
+            <div className="credential-icon certificate">
+              🎓
             </div>
-            <span className="credential-arrow">→</span>
+
+            <div>
+              <span className="panel-kicker">
+                CREDENTIALS
+              </span>
+
+              <h2>
+                Certificates
+              </h2>
+
+              <p>
+                {
+                  dashboard.total_certificates
+                }{" "}
+                certificate
+                {dashboard.total_certificates ===
+                1
+                  ? ""
+                  : "s"}{" "}
+                available to
+                download.
+              </p>
+            </div>
+
+            <span className="credential-arrow">
+              →
+            </span>
           </button>
         </section>
 
         <section className="profile-strip">
-          <div className="profile-avatar">{(dashboard.name || "U").charAt(0).toUpperCase()}</div>
-          <div className="profile-details">
-            <span className="panel-kicker">LEARNER PROFILE</span>
-            <strong>{dashboard.name}</strong>
-            <span>{dashboard.email}</span>
+          <div className="profile-avatar">
+            {(dashboard.name ||
+              "U")
+              .charAt(0)
+              .toUpperCase()}
           </div>
-          <div className="profile-language"><span>Preferred Language</span><strong>🌐 {dashboard.language}</strong></div>
+
+          <div className="profile-details">
+            <span className="panel-kicker">
+              LEARNER PROFILE
+            </span>
+
+            <strong>
+              {dashboard.name}
+            </strong>
+
+            <span>
+              {dashboard.email}
+            </span>
+          </div>
+
+          <div className="profile-language">
+            <span>
+              Preferred Language
+            </span>
+
+            <strong>
+              🌐{" "}
+              {dashboard.language}
+            </strong>
+          </div>
         </section>
 
-        {message && <Alert type="error">{message}</Alert>}
+        {message && (
+          <Alert type="error">
+            {message}
+          </Alert>
+        )}
       </AppShell>
     );
   }
 
-  // ==================================================
+  // =========================================================
   // LOGIN SCREEN
-  // ==================================================
+  // =========================================================
+
   return (
     <div className="login-page">
       <div className="login-visual">
-        <div className="login-brand-mark">VE</div>
-        <span className="login-kicker">SIH26042 • SMART EDUCATION</span>
-        <h1>Learning should speak your language.</h1>
-        <p>AI-powered vernacular education designed to make primary learning more accessible, interactive and measurable.</p>
+        <div className="login-brand-mark">
+          VE
+        </div>
+
+        <span className="login-kicker">
+          SIH26042 • SMART EDUCATION
+        </span>
+
+        <h1>
+          Learning should speak your
+          language.
+        </h1>
+
+        <p>
+          AI-powered vernacular
+          education designed to make
+          primary learning more
+          accessible, interactive and
+          measurable.
+        </p>
+
         <div className="login-feature-list">
-          <span>✓ Mother-tongue learning</span>
-          <span>✓ Real-time translation</span>
-          <span>✓ Interactive quizzes</span>
-          <span>✓ Progress & certificates</span>
+          <span>
+            ✓ Mother-tongue learning
+          </span>
+
+          <span>
+            ✓ Real-time translation
+          </span>
+
+          <span>
+            ✓ Interactive quizzes
+          </span>
+
+          <span>
+            ✓ Progress & certificates
+          </span>
         </div>
       </div>
 
       <div className="login-panel">
         <div className="login-card">
           <div className="login-card-header">
-            <div className="logo-circle">VE</div>
-            <span className="login-small-label">WELCOME BACK</span>
-            <h2>Sign in to your classroom</h2>
-            <p>Continue your vernacular learning journey.</p>
+            <div className="logo-circle">
+              VE
+            </div>
+
+            <span className="login-small-label">
+              WELCOME BACK
+            </span>
+
+            <h2>
+              Sign in to your classroom
+            </h2>
+
+            <p>
+              Continue your vernacular
+              learning journey.
+            </p>
           </div>
 
           <div className="form-group">
-            <label>Email address</label>
-            <input type="email" placeholder="Enter your email" value={email} onChange={(event) => setEmail(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") handleLogin(); }} />
+            <label>
+              Email address
+            </label>
+
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(event) =>
+                setEmail(
+                  event.target.value
+                )
+              }
+              onKeyDown={(event) => {
+                if (
+                  event.key ===
+                  "Enter"
+                ) {
+                  handleLogin();
+                }
+              }}
+            />
           </div>
 
           <div className="form-group">
-            <label>Password</label>
-            <input type="password" placeholder="Enter your password" value={password} onChange={(event) => setPassword(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") handleLogin(); }} />
+            <label>
+              Password
+            </label>
+
+            <input
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(event) =>
+                setPassword(
+                  event.target.value
+                )
+              }
+              onKeyDown={(event) => {
+                if (
+                  event.key ===
+                  "Enter"
+                ) {
+                  handleLogin();
+                }
+              }}
+            />
           </div>
 
-          <button type="button" className="login-button" disabled={loading} onClick={handleLogin}>
-            {loading ? "Signing in..." : "Sign In →"}
+          <button
+            type="button"
+            className="login-button"
+            disabled={loading}
+            onClick={handleLogin}
+          >
+            {loading
+              ? "Signing in..."
+              : "Sign In →"}
           </button>
 
-          {message && <div className="login-message">{message}</div>}
+          {message && (
+            <div className="login-message">
+              {message}
+            </div>
+          )}
 
-          <div className="login-footer">AI-Powered Vernacular Education Platform <span>•</span> SIH26042</div>
+          <div className="login-footer">
+            AI-Powered Vernacular
+            Education Platform{" "}
+            <span>•</span>{" "}
+            SIH26042
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function AppShell({ dashboard, active, onDashboard, onSubjects, onTranslation, onAchievements, onCertificates, onLogout, children }) {
-  const initials = (dashboard?.name || "User").trim().split(/\s+/).slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join("");
+// =========================================================
+// PROFESSIONAL SCORE RING
+// =========================================================
+
+function ScoreRing({
+  score,
+  passed,
+}) {
+  const safeScore =
+    clampPercentage(score);
+
+  const size = 210;
+  const strokeWidth = 18;
+  const center = size / 2;
+
+  const radius =
+    (size - strokeWidth) / 2;
+
+  const circumference =
+    2 * Math.PI * radius;
+
+  const progressLength =
+    (safeScore / 100) *
+    circumference;
+
+  const remainingLength =
+    circumference -
+    progressLength;
+
+  return (
+    <div
+      className={`score-ring ${
+        passed
+          ? "score-ring-passed"
+          : "score-ring-failed"
+      }`}
+      style={{
+        "--score-percent": `${safeScore}%`,
+      }}
+    >
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        role="img"
+        aria-label={`Quiz score ${safeScore}%`}
+      >
+        {/* Background Ring */}
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          stroke="rgba(15, 23, 42, 0.09)"
+          strokeWidth={strokeWidth}
+        />
+
+        {/* Progress Ring */}
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          stroke={
+            passed
+              ? "#5b3df5"
+              : "#f59e0b"
+          }
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={`${progressLength} ${remainingLength}`}
+          strokeDashoffset={
+            circumference / 4
+          }
+          transform={`rotate(0 ${center} ${center})`}
+          style={{
+            transition:
+              "stroke-dasharray 900ms ease",
+          }}
+        />
+      </svg>
+
+      <div className="score-ring-content">
+        <strong>
+          {safeScore}%
+        </strong>
+
+        <span>Score</span>
+      </div>
+    </div>
+  );
+}
+
+// =========================================================
+// APP SHELL
+// =========================================================
+
+function AppShell({
+  dashboard,
+  active,
+  onDashboard,
+  onSubjects,
+  onTranslation,
+  onAchievements,
+  onCertificates,
+  onLogout,
+  children,
+}) {
+  const initials = (
+    dashboard?.name ||
+    "User"
+  )
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) =>
+      part.charAt(0).toUpperCase()
+    )
+    .join("");
 
   return (
     <div className="app-shell">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <div className="sidebar-logo">VE</div>
-          <div><strong>Vernacular</strong><span>Education</span></div>
+          <div className="sidebar-logo">
+            VE
+          </div>
+
+          <div>
+            <strong>
+              Vernacular
+            </strong>
+
+            <span>
+              Education
+            </span>
+          </div>
         </div>
 
-        <div className="sidebar-section-label">MAIN MENU</div>
+        <div className="sidebar-section-label">
+          MAIN MENU
+        </div>
+
         <nav className="sidebar-nav">
-          <button type="button" className={active === "dashboard" ? "active" : ""} onClick={onDashboard}>⌂ <span>Dashboard</span></button>
-          <button type="button" className={active === "subjects" ? "active" : ""} onClick={onSubjects}>▣ <span>Subjects</span></button>
-          <button type="button" className={active === "translation" ? "active" : ""} onClick={onTranslation}>◎ <span>Translation</span></button>
+          <button
+            type="button"
+            className={
+              active ===
+              "dashboard"
+                ? "active"
+                : ""
+            }
+            onClick={
+              onDashboard
+            }
+          >
+            ⌂{" "}
+            <span>
+              Dashboard
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className={
+              active ===
+              "subjects"
+                ? "active"
+                : ""
+            }
+            onClick={
+              onSubjects
+            }
+          >
+            ▣{" "}
+            <span>
+              Subjects
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className={
+              active ===
+              "translation"
+                ? "active"
+                : ""
+            }
+            onClick={
+              onTranslation
+            }
+          >
+            ◎{" "}
+            <span>
+              Translation
+            </span>
+          </button>
         </nav>
 
-        <div className="sidebar-section-label">ACHIEVEMENTS</div>
+        <div className="sidebar-section-label">
+          ACHIEVEMENTS
+        </div>
+
         <nav className="sidebar-nav">
-          <button type="button" className={active === "achievements" ? "active" : ""} onClick={onAchievements}>♛ <span>Achievements</span></button>
-          <button type="button" className={active === "certificates" ? "active" : ""} onClick={onCertificates}>◇ <span>Certificates</span></button>
+          <button
+            type="button"
+            className={
+              active ===
+              "achievements"
+                ? "active"
+                : ""
+            }
+            onClick={
+              onAchievements
+            }
+          >
+            ♛{" "}
+            <span>
+              Achievements
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className={
+              active ===
+              "certificates"
+                ? "active"
+                : ""
+            }
+            onClick={
+              onCertificates
+            }
+          >
+            ◇{" "}
+            <span>
+              Certificates
+            </span>
+          </button>
         </nav>
 
         <div className="sidebar-spacer" />
 
         <div className="sidebar-user">
-          <div className="sidebar-avatar">{initials || "U"}</div>
-          <div className="sidebar-user-text"><strong>{dashboard?.name || "Learner"}</strong><span>{dashboard?.language || "Hindi"}</span></div>
+          <div className="sidebar-avatar">
+            {initials || "U"}
+          </div>
+
+          <div className="sidebar-user-text">
+            <strong>
+              {dashboard?.name ||
+                "Learner"}
+            </strong>
+
+            <span>
+              {dashboard?.language ||
+                "Hindi"}
+            </span>
+          </div>
         </div>
-        <button type="button" className="logout-button" onClick={onLogout}>↪ <span>Logout</span></button>
-        <div className="sidebar-footer">SIH26042 · Smart Education</div>
+
+        <button
+          type="button"
+          className="logout-button"
+          onClick={onLogout}
+        >
+          ↪{" "}
+          <span>
+            Logout
+          </span>
+        </button>
+
+        <div className="sidebar-footer">
+          SIH26042 · Smart Education
+        </div>
       </aside>
 
       <main className="main-content">
         <header className="topbar">
           <div>
-            <span className="topbar-label">VERNACULAR EDUCATION PLATFORM</span>
-            <strong>Mother-Tongue-Based Primary Learning</strong>
+            <span className="topbar-label">
+              VERNACULAR EDUCATION
+              PLATFORM
+            </span>
+
+            <strong>
+              Mother-Tongue-Based
+              Primary Learning
+            </strong>
           </div>
+
           <div className="topbar-user">
-            <div className="topbar-avatar">{initials || "U"}</div>
-            <div><strong>{dashboard?.name || "Learner"}</strong><span>Student</span></div>
+            <div className="topbar-avatar">
+              {initials || "U"}
+            </div>
+
+            <div>
+              <strong>
+                {dashboard?.name ||
+                  "Learner"}
+              </strong>
+
+              <span>
+                Student
+              </span>
+            </div>
           </div>
         </header>
+
         {children}
       </main>
     </div>
   );
 }
 
-function PageHeader({ eyebrow, title, description, icon }) {
+// =========================================================
+// PAGE HEADER
+// =========================================================
+
+function PageHeader({
+  eyebrow,
+  title,
+  description,
+  icon,
+}) {
   return (
     <div className="page-header">
-      <div className="page-header-icon">{icon}</div>
-      <div><span className="panel-kicker">{eyebrow}</span><h1>{title}</h1><p>{description}</p></div>
+      <div className="page-header-icon">
+        {icon}
+      </div>
+
+      <div>
+        <span className="panel-kicker">
+          {eyebrow}
+        </span>
+
+        <h1>{title}</h1>
+
+        <p>
+          {description}
+        </p>
+      </div>
     </div>
   );
 }
 
-function StatCard({ icon, label, value, tone = "blue", clickable = false, onClick }) {
+// =========================================================
+// STAT CARD
+// =========================================================
+
+function StatCard({
+  icon,
+  label,
+  value,
+  tone = "blue",
+  clickable = false,
+  onClick,
+}) {
   const content = (
     <>
-      <div className={`stat-icon ${tone}`}>{icon}</div>
-      <div className="stat-copy"><span>{label}</span><strong>{value ?? 0}</strong></div>
-      {clickable && <span className="stat-arrow">→</span>}
+      <div
+        className={`stat-icon ${tone}`}
+      >
+        {icon}
+      </div>
+
+      <div className="stat-copy">
+        <span>{label}</span>
+
+        <strong>
+          {value ?? 0}
+        </strong>
+      </div>
+
+      {clickable && (
+        <span className="stat-arrow">
+          →
+        </span>
+      )}
     </>
   );
 
-  return clickable ? <button type="button" className="stat-card clickable" onClick={onClick}>{content}</button> : <article className="stat-card">{content}</article>;
+  return clickable ? (
+    <button
+      type="button"
+      className="stat-card clickable"
+      onClick={onClick}
+    >
+      {content}
+    </button>
+  ) : (
+    <article className="stat-card">
+      {content}
+    </article>
+  );
 }
 
-function LoadingCard({ icon, title }) {
-  return <div className="loading-card"><div className="loading-spinner">{icon}</div><h2>{title}</h2><p>Please wait while we load your data.</p></div>;
+// =========================================================
+// LOADING CARD
+// =========================================================
+
+function LoadingCard({
+  icon,
+  title,
+}) {
+  return (
+    <div className="loading-card">
+      <div className="loading-spinner">
+        {icon}
+      </div>
+
+      <h2>{title}</h2>
+
+      <p>
+        Please wait while we load
+        your data.
+      </p>
+    </div>
+  );
 }
 
-function EmptyState({ icon, title, text }) {
-  return <div className="empty-state"><div className="empty-icon">{icon}</div><h2>{title}</h2><p>{text}</p></div>;
+// =========================================================
+// EMPTY STATE
+// =========================================================
+
+function EmptyState({
+  icon,
+  title,
+  text,
+}) {
+  return (
+    <div className="empty-state">
+      <div className="empty-icon">
+        {icon}
+      </div>
+
+      <h2>{title}</h2>
+
+      <p>{text}</p>
+    </div>
+  );
 }
 
-function Alert({ type = "error", children }) {
-  return <div className={`alert ${type}`}>{type === "error" ? "⚠" : "✓"} <span>{children}</span></div>;
+// =========================================================
+// ALERT
+// =========================================================
+
+function Alert({
+  type = "error",
+  children,
+}) {
+  return (
+    <div
+      className={`alert ${type}`}
+    >
+      {type === "error"
+        ? "⚠"
+        : "✓"}cd
+
+      <span>{children}</span>
+    </div>
+  );
 }
 
 export default App;
