@@ -31,7 +31,8 @@ function authHeaders(token = getToken()) {
 }
 
 async function parseResponse(response) {
-  const contentType = response.headers.get("content-type") || "";
+  const contentType =
+    response.headers.get("content-type") || "";
 
   if (contentType.includes("application/json")) {
     return await response.json();
@@ -255,6 +256,11 @@ function App() {
 
       if (response.ok) {
         setDashboard(data);
+      } else if (
+        typeof data === "object" &&
+        data?.detail
+      ) {
+        setMessage(data.detail);
       }
     } catch (error) {
       console.error(
@@ -628,10 +634,6 @@ function App() {
     setMessage("");
 
     try {
-      // -----------------------------------------------------
-      // CREATE ATTEMPT
-      // -----------------------------------------------------
-
       const attemptResponse =
         await fetch(API.quizAttempt, {
           method: "POST",
@@ -660,10 +662,6 @@ function App() {
         );
         return;
       }
-
-      // -----------------------------------------------------
-      // LOAD QUESTIONS
-      // -----------------------------------------------------
 
       const questionResponse =
         await fetch(
@@ -771,7 +769,6 @@ function App() {
           (question) => ({
             question_id:
               question.id,
-
             selected_answer:
               quizAnswers[
                 question.id
@@ -1219,9 +1216,7 @@ function App() {
                       </span>
 
                       <strong>
-                        {certificate.score ??
-                          0}
-                        %
+                        {certificate.score ?? 0}%
                       </strong>
                     </div>
 
@@ -1472,21 +1467,17 @@ function App() {
     const totalQuestions = Math.max(
       0,
       Number(
-        quizResult.total_questions ||
-          0
+        quizResult.total_questions ?? 0
       )
     );
 
     const correctAnswers = Math.max(
       0,
       Number(
-        quizResult.correct_answers ||
-          0
+        quizResult.correct_answers ?? 0
       )
     );
 
-    // Prefer backend score.
-    // If score is missing, calculate from answers.
     const calculatedScore =
       totalQuestions > 0
         ? Math.round(
@@ -1502,6 +1493,12 @@ function App() {
     );
 
     const passed = score >= 50;
+
+    const incorrectAnswers = Math.max(
+      0,
+      totalQuestions -
+        correctAnswers
+    );
 
     return (
       <AppShell
@@ -1548,12 +1545,6 @@ function App() {
               {selectedLesson.title}
             </p>
 
-            {/* =================================================
-                PROFESSIONAL SCORE RING
-                SVG is used so the percentage is mathematically
-                accurate and independent from CSS gradients.
-            ================================================== */}
-
             <ScoreRing
               score={score}
               passed={passed}
@@ -1582,11 +1573,7 @@ function App() {
 
               <div>
                 <strong>
-                  {Math.max(
-                    0,
-                    totalQuestions -
-                      correctAnswers
-                  )}
+                  {incorrectAnswers}
                 </strong>
 
                 <span>
@@ -2815,9 +2802,6 @@ function ScoreRing({
           ? "score-ring-passed"
           : "score-ring-failed"
       }`}
-      style={{
-        "--score-percent": `${safeScore}%`,
-      }}
     >
       <svg
         width={size}
@@ -2826,7 +2810,6 @@ function ScoreRing({
         role="img"
         aria-label={`Quiz score ${safeScore}%`}
       >
-        {/* Background Ring */}
         <circle
           cx={center}
           cy={center}
@@ -2836,7 +2819,6 @@ function ScoreRing({
           strokeWidth={strokeWidth}
         />
 
-        {/* Progress Ring */}
         <circle
           cx={center}
           cy={center}
@@ -2850,10 +2832,7 @@ function ScoreRing({
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={`${progressLength} ${remainingLength}`}
-          strokeDashoffset={
-            circumference / 4
-          }
-          transform={`rotate(0 ${center} ${center})`}
+          transform={`rotate(-90 ${center} ${center})`}
           style={{
             transition:
               "stroke-dasharray 900ms ease",
@@ -2866,7 +2845,9 @@ function ScoreRing({
           {safeScore}%
         </strong>
 
-        <span>Score</span>
+        <span>
+          Score
+        </span>
       </div>
     </div>
   );
@@ -3233,10 +3214,13 @@ function Alert({
   return (
     <div
       className={`alert ${type}`}
+      role="alert"
     >
-      {type === "error"
-        ? "⚠"
-        : "✓"}cd
+      <span className="alert-icon">
+        {type === "error"
+          ? "⚠"
+          : "✓"}
+      </span>
 
       <span>{children}</span>
     </div>
