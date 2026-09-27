@@ -7,6 +7,7 @@ const API_URL =
 
 const API = {
   login: `${API_URL}/login`,
+  register: `${API_URL}/register`,
   dashboard: `${API_URL}/dashboard`,
   achievements: `${API_URL}/achievements/me`,
   certificates: `${API_URL}/certificates/me`,
@@ -51,111 +52,369 @@ function clampPercentage(value) {
   return Math.max(0, Math.min(100, number));
 }
 
+function getErrorMessage(data, fallback) {
+  if (typeof data === "object" && data?.detail) {
+    if (Array.isArray(data.detail)) {
+      return (
+        data.detail
+          .map(
+            (item) =>
+              item?.msg || "Invalid input."
+          )
+          .join(", ") || fallback
+      );
+    }
+
+    if (typeof data.detail === "string") {
+      return data.detail;
+    }
+  }
+
+  return fallback;
+}
+
 function App() {
+  // =========================================================
+  // AUTH MODE
+  // =========================================================
+
+  const [authMode, setAuthMode] =
+    useState("login");
+
   // =========================================================
   // LOGIN
   // =========================================================
 
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [password, setPassword] =
+    useState("");
+
+  // =========================================================
+  // REGISTER
+  // =========================================================
+
+  const [registerName, setRegisterName] =
+    useState("");
+
+  const [registerEmail, setRegisterEmail] =
+    useState("");
+
+  const [
+    registerPassword,
+    setRegisterPassword,
+  ] = useState("");
+
+  const [
+    registerLanguage,
+    setRegisterLanguage,
+  ] = useState("Hindi");
+
+  // =========================================================
+  // AUTH LOADING / MESSAGE
+  // =========================================================
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [
+    registerLoading,
+    setRegisterLoading,
+  ] = useState(false);
+
+  const [message, setMessage] =
+    useState("");
+
+  const [messageType, setMessageType] =
+    useState("error");
 
   // =========================================================
   // DASHBOARD
   // =========================================================
 
-  const [dashboard, setDashboard] = useState(null);
+  const [dashboard, setDashboard] =
+    useState(null);
 
   // =========================================================
   // ACHIEVEMENTS
   // =========================================================
 
-  const [achievements, setAchievements] = useState(null);
-  const [achievementsLoading, setAchievementsLoading] =
-    useState(false);
-  const [showAchievements, setShowAchievements] =
-    useState(false);
+  const [achievements, setAchievements] =
+    useState(null);
+
+  const [
+    achievementsLoading,
+    setAchievementsLoading,
+  ] = useState(false);
+
+  const [
+    showAchievements,
+    setShowAchievements,
+  ] = useState(false);
 
   // =========================================================
   // CERTIFICATES
   // =========================================================
 
-  const [certificates, setCertificates] = useState(null);
-  const [certificatesLoading, setCertificatesLoading] =
-    useState(false);
-  const [showCertificates, setShowCertificates] =
-    useState(false);
+  const [certificates, setCertificates] =
+    useState(null);
+
+  const [
+    certificatesLoading,
+    setCertificatesLoading,
+  ] = useState(false);
+
+  const [
+    showCertificates,
+    setShowCertificates,
+  ] = useState(false);
 
   // =========================================================
   // SUBJECTS
   // =========================================================
 
-  const [subjects, setSubjects] = useState(null);
-  const [subjectsLoading, setSubjectsLoading] =
-    useState(false);
+  const [subjects, setSubjects] =
+    useState(null);
+
+  const [
+    subjectsLoading,
+    setSubjectsLoading,
+  ] = useState(false);
 
   // =========================================================
   // LESSONS
   // =========================================================
 
-  const [lessons, setLessons] = useState(null);
-  const [selectedSubject, setSelectedSubject] =
+  const [lessons, setLessons] =
     useState(null);
-  const [lessonsLoading, setLessonsLoading] =
-    useState(false);
+
+  const [
+    selectedSubject,
+    setSelectedSubject,
+  ] = useState(null);
+
+  const [
+    lessonsLoading,
+    setLessonsLoading,
+  ] = useState(false);
 
   // =========================================================
   // SELECTED LESSON
   // =========================================================
 
-  const [selectedLesson, setSelectedLesson] =
-    useState(null);
+  const [
+    selectedLesson,
+    setSelectedLesson,
+  ] = useState(null);
 
   // =========================================================
   // QUIZ
   // =========================================================
 
-  const [quizQuestions, setQuizQuestions] =
-    useState(null);
+  const [
+    quizQuestions,
+    setQuizQuestions,
+  ] = useState(null);
 
-  const [quizAnswers, setQuizAnswers] = useState({});
+  const [
+    quizAnswers,
+    setQuizAnswers,
+  ] = useState({});
 
-  const [quizLoading, setQuizLoading] =
-    useState(false);
+  const [
+    quizLoading,
+    setQuizLoading,
+  ] = useState(false);
 
-  const [quizSubmitting, setQuizSubmitting] =
-    useState(false);
+  const [
+    quizSubmitting,
+    setQuizSubmitting,
+  ] = useState(false);
 
-  const [quizResult, setQuizResult] =
-    useState(null);
+  const [
+    quizResult,
+    setQuizResult,
+  ] = useState(null);
 
   // =========================================================
   // TRANSLATION
   // =========================================================
 
-  const [translationOpen, setTranslationOpen] =
-    useState(false);
+  const [
+    translationOpen,
+    setTranslationOpen,
+  ] = useState(false);
 
-  const [languages, setLanguages] = useState([]);
+  const [languages, setLanguages] =
+    useState([]);
 
-  const [languagesLoading, setLanguagesLoading] =
-    useState(false);
+  const [
+    languagesLoading,
+    setLanguagesLoading,
+  ] = useState(false);
 
-  const [sourceLanguage, setSourceLanguage] =
-    useState("en-IN");
+  const [
+    sourceLanguage,
+    setSourceLanguage,
+  ] = useState("en-IN");
 
-  const [targetLanguage, setTargetLanguage] =
-    useState("hi-IN");
+  const [
+    targetLanguage,
+    setTargetLanguage,
+  ] = useState("hi-IN");
 
-  const [translationText, setTranslationText] =
-    useState("");
+  const [
+    translationText,
+    setTranslationText,
+  ] = useState("");
 
-  const [translationResult, setTranslationResult] =
-    useState("");
+  const [
+    translationResult,
+    setTranslationResult,
+  ] = useState("");
 
-  const [translationLoading, setTranslationLoading] =
-    useState(false);
+  const [
+    translationLoading,
+    setTranslationLoading,
+  ] = useState(false);
+
+  // =========================================================
+  // AUTH MESSAGE HELPERS
+  // =========================================================
+
+  const showError = (text) => {
+    setMessage(text);
+    setMessageType("error");
+  };
+
+  const showSuccess = (text) => {
+    setMessage(text);
+    setMessageType("success");
+  };
+
+  // =========================================================
+  // SWITCH TO LOGIN
+  // =========================================================
+
+  const switchToLogin = () => {
+    setAuthMode("login");
+    setMessage("");
+    setMessageType("error");
+
+    if (registerEmail.trim()) {
+      setEmail(registerEmail.trim());
+    }
+
+    setPassword("");
+  };
+
+  // =========================================================
+  // SWITCH TO REGISTER
+  // =========================================================
+
+  const switchToRegister = () => {
+    setAuthMode("register");
+    setMessage("");
+    setMessageType("error");
+
+    if (email.trim()) {
+      setRegisterEmail(email.trim());
+    }
+
+    setRegisterPassword("");
+  };
+
+  // =========================================================
+  // REGISTER
+  // =========================================================
+
+  const handleRegister = async () => {
+    const name = registerName.trim();
+    const registrationEmail =
+      registerEmail.trim();
+
+    if (!name) {
+      showError("Please enter your full name.");
+      return;
+    }
+
+    if (!registrationEmail) {
+      showError("Please enter your email address.");
+      return;
+    }
+
+    if (!registerPassword) {
+      showError("Please create a password.");
+      return;
+    }
+
+    if (registerPassword.length < 6) {
+      showError(
+        "Password should contain at least 6 characters."
+      );
+      return;
+    }
+
+    setRegisterLoading(true);
+    setMessage("");
+
+    try {
+      const response = await fetch(
+        API.register,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+          body: JSON.stringify({
+            name,
+            email: registrationEmail,
+            password: registerPassword,
+            language: registerLanguage,
+          }),
+        }
+      );
+
+      const data =
+        await parseResponse(response);
+
+      if (!response.ok) {
+        showError(
+          getErrorMessage(
+            data,
+            "Registration failed. Please try again."
+          )
+        );
+        return;
+      }
+
+      // Automatically prepare login form.
+      setEmail(registrationEmail);
+      setPassword("");
+
+      setRegisterName("");
+      setRegisterEmail("");
+      setRegisterPassword("");
+      setRegisterLanguage("Hindi");
+
+      setAuthMode("login");
+
+      showSuccess(
+        "Account created successfully. You can now sign in."
+      );
+    } catch (error) {
+      console.error(
+        "Registration error:",
+        error
+      );
+
+      showError(
+        "Backend server se connection nahi ho pa raha."
+      );
+    } finally {
+      setRegisterLoading(false);
+    }
+  };
 
   // =========================================================
   // LOGIN
@@ -163,7 +422,9 @@ function App() {
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
-      setMessage("Please enter email and password.");
+      showError(
+        "Please enter email and password."
+      );
       return;
     }
 
@@ -171,27 +432,40 @@ function App() {
     setMessage("");
 
     try {
-      const formData = new URLSearchParams();
+      const formData =
+        new URLSearchParams();
 
-      formData.append("username", email.trim());
-      formData.append("password", password);
+      formData.append(
+        "username",
+        email.trim()
+      );
 
-      const response = await fetch(API.login, {
-        method: "POST",
-        headers: {
-          "Content-Type":
-            "application/x-www-form-urlencoded",
-        },
-        body: formData.toString(),
-      });
+      formData.append(
+        "password",
+        password
+      );
 
-      const data = await parseResponse(response);
+      const response = await fetch(
+        API.login,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/x-www-form-urlencoded",
+          },
+          body: formData.toString(),
+        }
+      );
+
+      const data =
+        await parseResponse(response);
 
       if (!response.ok) {
-        setMessage(
-          typeof data === "object"
-            ? data.detail || "Login failed."
-            : "Login failed."
+        showError(
+          getErrorMessage(
+            data,
+            "Login failed."
+          )
         );
         return;
       }
@@ -201,32 +475,46 @@ function App() {
         data.access_token
       );
 
-      const dashboardResponse = await fetch(
-        API.dashboard,
-        {
-          method: "GET",
-          headers: authHeaders(data.access_token),
-        }
-      );
+      const dashboardResponse =
+        await fetch(
+          API.dashboard,
+          {
+            method: "GET",
+            headers: authHeaders(
+              data.access_token
+            ),
+          }
+        );
 
       const dashboardData =
-        await parseResponse(dashboardResponse);
+        await parseResponse(
+          dashboardResponse
+        );
 
       if (!dashboardResponse.ok) {
-        setMessage(
-          typeof dashboardData === "object"
-            ? dashboardData.detail ||
-                "Dashboard load nahi ho pa raha."
-            : "Dashboard load nahi ho pa raha."
+        localStorage.removeItem(
+          "access_token"
         );
+
+        showError(
+          getErrorMessage(
+            dashboardData,
+            "Dashboard load nahi ho pa raha."
+          )
+        );
+
         return;
       }
 
       setDashboard(dashboardData);
+      setMessage("");
     } catch (error) {
-      console.error("Login error:", error);
+      console.error(
+        "Login error:",
+        error
+      );
 
-      setMessage(
+      showError(
         "Backend server se connection nahi ho pa raha."
       );
     } finally {
@@ -242,17 +530,21 @@ function App() {
     const token = getToken();
 
     if (!token) {
-      setMessage("Please login again.");
+      showError("Please login again.");
       return;
     }
 
     try {
-      const response = await fetch(API.dashboard, {
-        method: "GET",
-        headers: authHeaders(token),
-      });
+      const response = await fetch(
+        API.dashboard,
+        {
+          method: "GET",
+          headers: authHeaders(token),
+        }
+      );
 
-      const data = await parseResponse(response);
+      const data =
+        await parseResponse(response);
 
       if (response.ok) {
         setDashboard(data);
@@ -260,7 +552,7 @@ function App() {
         typeof data === "object" &&
         data?.detail
       ) {
-        setMessage(data.detail);
+        showError(data.detail);
       }
     } catch (error) {
       console.error(
@@ -278,7 +570,7 @@ function App() {
     const token = getToken();
 
     if (!token) {
-      setMessage("Please login again.");
+      showError("Please login again.");
       return;
     }
 
@@ -286,28 +578,32 @@ function App() {
     setMessage("");
 
     try {
-      const response = await fetch(
-        API.achievements,
-        {
-          method: "GET",
-          headers: authHeaders(token),
-        }
-      );
+      const response =
+        await fetch(
+          API.achievements,
+          {
+            method: "GET",
+            headers: authHeaders(token),
+          }
+        );
 
-      const data = await parseResponse(response);
+      const data =
+        await parseResponse(response);
 
       if (!response.ok) {
-        setMessage(
-          typeof data === "object"
-            ? data.detail ||
-                "Achievements load nahi ho pa rahe."
-            : "Achievements load nahi ho pa rahe."
+        showError(
+          getErrorMessage(
+            data,
+            "Achievements load nahi ho pa rahe."
+          )
         );
         return;
       }
 
       setAchievements(
-        Array.isArray(data) ? data : []
+        Array.isArray(data)
+          ? data
+          : []
       );
     } catch (error) {
       console.error(
@@ -315,19 +611,22 @@ function App() {
         error
       );
 
-      setMessage(
+      showError(
         "Achievements load karte time error aa gaya."
       );
     } finally {
-      setAchievementsLoading(false);
+      setAchievementsLoading(
+        false
+      );
     }
   };
 
-  const openAchievements = async () => {
-    setShowAchievements(true);
-    setMessage("");
-    await loadAchievements();
-  };
+  const openAchievements =
+    async () => {
+      setShowAchievements(true);
+      setMessage("");
+      await loadAchievements();
+    };
 
   const closeAchievements = () => {
     setShowAchievements(false);
@@ -342,7 +641,7 @@ function App() {
     const token = getToken();
 
     if (!token) {
-      setMessage("Please login again.");
+      showError("Please login again.");
       return;
     }
 
@@ -350,28 +649,32 @@ function App() {
     setMessage("");
 
     try {
-      const response = await fetch(
-        API.certificates,
-        {
-          method: "GET",
-          headers: authHeaders(token),
-        }
-      );
+      const response =
+        await fetch(
+          API.certificates,
+          {
+            method: "GET",
+            headers: authHeaders(token),
+          }
+        );
 
-      const data = await parseResponse(response);
+      const data =
+        await parseResponse(response);
 
       if (!response.ok) {
-        setMessage(
-          typeof data === "object"
-            ? data.detail ||
-                "Certificates load nahi ho pa rahe."
-            : "Certificates load nahi ho pa rahe."
+        showError(
+          getErrorMessage(
+            data,
+            "Certificates load nahi ho pa rahe."
+          )
         );
         return;
       }
 
       setCertificates(
-        Array.isArray(data) ? data : []
+        Array.isArray(data)
+          ? data
+          : []
       );
     } catch (error) {
       console.error(
@@ -379,19 +682,22 @@ function App() {
         error
       );
 
-      setMessage(
+      showError(
         "Certificates load karte time error aa gaya."
       );
     } finally {
-      setCertificatesLoading(false);
+      setCertificatesLoading(
+        false
+      );
     }
   };
 
-  const openCertificates = async () => {
-    setShowCertificates(true);
-    setMessage("");
-    await loadCertificates();
-  };
+  const openCertificates =
+    async () => {
+      setShowCertificates(true);
+      setMessage("");
+      await loadCertificates();
+    };
 
   const closeCertificates = () => {
     setShowCertificates(false);
@@ -402,82 +708,91 @@ function App() {
   // CERTIFICATE PDF DOWNLOAD
   // =========================================================
 
-  const handleDownloadCertificate = async (
-    certificate
-  ) => {
-    const token = getToken();
+  const handleDownloadCertificate =
+    async (certificate) => {
+      const token = getToken();
 
-    if (!token) {
-      setMessage("Please login again.");
-      return;
-    }
-
-    if (!certificate?.certificate_id) {
-      setMessage("Certificate ID nahi mila.");
-      return;
-    }
-
-    try {
-      setMessage("");
-
-      const response = await fetch(
-        `${API_URL}/certificates/${certificate.certificate_id}/download`,
-        {
-          method: "GET",
-          headers: authHeaders(token),
-        }
-      );
-
-      if (!response.ok) {
-        let errorMessage =
-          "Certificate download nahi ho pa raha.";
-
-        try {
-          const errorData =
-            await response.json();
-
-          errorMessage =
-            errorData.detail ||
-            errorMessage;
-        } catch {
-          // Keep default message.
-        }
-
-        setMessage(errorMessage);
+      if (!token) {
+        showError("Please login again.");
         return;
       }
 
-      const pdfBlob = await response.blob();
+      if (!certificate?.certificate_id) {
+        showError(
+          "Certificate ID nahi mila."
+        );
+        return;
+      }
 
-      const pdfUrl =
-        window.URL.createObjectURL(pdfBlob);
+      try {
+        setMessage("");
 
-      const link =
-        document.createElement("a");
+        const response =
+          await fetch(
+            `${API_URL}/certificates/${certificate.certificate_id}/download`,
+            {
+              method: "GET",
+              headers: authHeaders(token),
+            }
+          );
 
-      link.href = pdfUrl;
+        if (!response.ok) {
+          let errorMessage =
+            "Certificate download nahi ho pa raha.";
 
-      link.download =
-        `${certificate.certificate_id}.pdf`;
+          try {
+            const errorData =
+              await response.json();
 
-      document.body.appendChild(link);
+            errorMessage =
+              errorData.detail ||
+              errorMessage;
+          } catch {
+            // Keep default message.
+          }
 
-      link.click();
+          showError(errorMessage);
+          return;
+        }
 
-      link.remove();
+        const pdfBlob =
+          await response.blob();
 
-      window.URL.revokeObjectURL(pdfUrl);
-    } catch (error) {
-      console.error(
-        "Certificate download error:",
-        error
-      );
+        const pdfUrl =
+          window.URL.createObjectURL(
+            pdfBlob
+          );
 
-      setMessage(
-        "Certificate download karte time error aa gaya."
-      );
-    }
-  };
+        const link =
+          document.createElement("a");
+
+        link.href = pdfUrl;
+
+        link.download =
+          `${certificate.certificate_id}.pdf`;
+
+        document.body.appendChild(
+          link
+        );
+
+        link.click();
+
+        link.remove();
+
+        window.URL.revokeObjectURL(
+          pdfUrl
+        );
+      } catch (error) {
+        console.error(
+          "Certificate download error:",
+          error
+        );
+
+        showError(
+          "Certificate download karte time error aa gaya."
+        );
+      }
+    };
 
   // =========================================================
   // SUBJECTS
@@ -487,7 +802,7 @@ function App() {
     const token = getToken();
 
     if (!token) {
-      setMessage("Please login again.");
+      showError("Please login again.");
       return;
     }
 
@@ -495,28 +810,32 @@ function App() {
     setMessage("");
 
     try {
-      const response = await fetch(
-        API.subjects,
-        {
-          method: "GET",
-          headers: authHeaders(token),
-        }
-      );
+      const response =
+        await fetch(
+          API.subjects,
+          {
+            method: "GET",
+            headers: authHeaders(token),
+          }
+        );
 
-      const data = await parseResponse(response);
+      const data =
+        await parseResponse(response);
 
       if (!response.ok) {
-        setMessage(
-          typeof data === "object"
-            ? data.detail ||
-                "Subjects load nahi ho pa rahe."
-            : "Subjects load nahi ho pa rahe."
+        showError(
+          getErrorMessage(
+            data,
+            "Subjects load nahi ho pa rahe."
+          )
         );
         return;
       }
 
       setSubjects(
-        Array.isArray(data) ? data : []
+        Array.isArray(data)
+          ? data
+          : []
       );
     } catch (error) {
       console.error(
@@ -524,7 +843,7 @@ function App() {
         error
       );
 
-      setMessage(
+      showError(
         "Subjects load karte time error aa gaya."
       );
     } finally {
@@ -536,11 +855,13 @@ function App() {
   // LESSONS
   // =========================================================
 
-  const loadLessons = async (subject) => {
+  const loadLessons = async (
+    subject
+  ) => {
     const token = getToken();
 
     if (!token) {
-      setMessage("Please login again.");
+      showError("Please login again.");
       return;
     }
 
@@ -555,22 +876,24 @@ function App() {
     setQuizAnswers({});
 
     try {
-      const response = await fetch(
-        API.lessons,
-        {
-          method: "GET",
-          headers: authHeaders(token),
-        }
-      );
+      const response =
+        await fetch(
+          API.lessons,
+          {
+            method: "GET",
+            headers: authHeaders(token),
+          }
+        );
 
-      const data = await parseResponse(response);
+      const data =
+        await parseResponse(response);
 
       if (!response.ok) {
-        setMessage(
-          typeof data === "object"
-            ? data.detail ||
-                "Lessons load nahi ho pa rahe."
-            : "Lessons load nahi ho pa rahe."
+        showError(
+          getErrorMessage(
+            data,
+            "Lessons load nahi ho pa rahe."
+          )
         );
         return;
       }
@@ -579,7 +902,9 @@ function App() {
         Array.isArray(data)
           ? data.filter(
               (lesson) =>
-                Number(lesson.subject_id) ===
+                Number(
+                  lesson.subject_id
+                ) ===
                 Number(subject.id)
             )
           : [];
@@ -591,7 +916,7 @@ function App() {
         error
       );
 
-      setMessage(
+      showError(
         "Lessons load karte time error aa gaya."
       );
     } finally {
@@ -603,7 +928,9 @@ function App() {
   // OPEN LESSON
   // =========================================================
 
-  const openLesson = (lesson) => {
+  const openLesson = (
+    lesson
+  ) => {
     setSelectedLesson(lesson);
     setQuizQuestions(null);
     setQuizAnswers({});
@@ -623,7 +950,7 @@ function App() {
     const token = getToken();
 
     if (!token) {
-      setMessage("Please login again.");
+      showError("Please login again.");
       return;
     }
 
@@ -635,18 +962,21 @@ function App() {
 
     try {
       const attemptResponse =
-        await fetch(API.quizAttempt, {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-            ...authHeaders(token),
-          },
-          body: JSON.stringify({
-            lesson_id:
-              selectedLesson.id,
-          }),
-        });
+        await fetch(
+          API.quizAttempt,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+              ...authHeaders(token),
+            },
+            body: JSON.stringify({
+              lesson_id:
+                selectedLesson.id,
+            }),
+          }
+        );
 
       const attemptData =
         await parseResponse(
@@ -654,11 +984,11 @@ function App() {
         );
 
       if (!attemptResponse.ok) {
-        setMessage(
-          typeof attemptData === "object"
-            ? attemptData.detail ||
-                "Quiz start nahi ho pa raha."
-            : "Quiz start nahi ho pa raha."
+        showError(
+          getErrorMessage(
+            attemptData,
+            "Quiz start nahi ho pa raha."
+          )
         );
         return;
       }
@@ -678,33 +1008,37 @@ function App() {
         );
 
       if (!questionResponse.ok) {
-        setMessage(
-          typeof questionData === "object"
-            ? questionData.detail ||
-                "Quiz questions load nahi ho rahe."
-            : "Quiz questions load nahi ho rahe."
+        showError(
+          getErrorMessage(
+            questionData,
+            "Quiz questions load nahi ho rahe."
+          )
         );
         return;
       }
 
       if (
-        !Array.isArray(questionData) ||
+        !Array.isArray(
+          questionData
+        ) ||
         questionData.length === 0
       ) {
-        setMessage(
+        showError(
           "Is lesson ke liye abhi koi quiz available nahi hai."
         );
         return;
       }
 
-      setQuizQuestions(questionData);
+      setQuizQuestions(
+        questionData
+      );
     } catch (error) {
       console.error(
         "Quiz loading error:",
         error
       );
 
-      setMessage(
+      showError(
         "Quiz load karte time error aa gaya."
       );
     } finally {
@@ -720,10 +1054,12 @@ function App() {
     questionId,
     answer
   ) => {
-    setQuizAnswers((previous) => ({
-      ...previous,
-      [questionId]: answer,
-    }));
+    setQuizAnswers(
+      (previous) => ({
+        ...previous,
+        [questionId]: answer,
+      })
+    );
   };
 
   // =========================================================
@@ -741,13 +1077,16 @@ function App() {
     const unansweredQuestions =
       quizQuestions.filter(
         (question) =>
-          !quizAnswers[question.id]
+          !quizAnswers[
+            question.id
+          ]
       );
 
     if (
-      unansweredQuestions.length > 0
+      unansweredQuestions.length >
+      0
     ) {
-      setMessage(
+      showError(
         `Please answer all questions first. ${unansweredQuestions.length} question(s) remaining.`
       );
       return;
@@ -756,7 +1095,7 @@ function App() {
     const token = getToken();
 
     if (!token) {
-      setMessage("Please login again.");
+      showError("Please login again.");
       return;
     }
 
@@ -777,29 +1116,32 @@ function App() {
         );
 
       const response =
-        await fetch(API.quizSubmit, {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-            ...authHeaders(token),
-          },
-          body: JSON.stringify({
-            lesson_id:
-              selectedLesson.id,
-            answers,
-          }),
-        });
+        await fetch(
+          API.quizSubmit,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+              ...authHeaders(token),
+            },
+            body: JSON.stringify({
+              lesson_id:
+                selectedLesson.id,
+              answers,
+            }),
+          }
+        );
 
       const data =
         await parseResponse(response);
 
       if (!response.ok) {
-        setMessage(
-          typeof data === "object"
-            ? data.detail ||
-                "Quiz submit nahi ho pa raha."
-            : "Quiz submit nahi ho pa raha."
+        showError(
+          getErrorMessage(
+            data,
+            "Quiz submit nahi ho pa raha."
+          )
         );
         return;
       }
@@ -813,7 +1155,7 @@ function App() {
         error
       );
 
-      setMessage(
+      showError(
         "Quiz submit karte time error aa gaya."
       );
     } finally {
@@ -842,23 +1184,29 @@ function App() {
 
     try {
       const response =
-        await fetch(API.languages);
+        await fetch(
+          API.languages
+        );
 
       const data =
-        await parseResponse(response);
+        await parseResponse(
+          response
+        );
 
       if (!response.ok) {
-        setMessage(
-          typeof data === "object"
-            ? data.detail ||
-                "Languages load nahi ho rahi hain."
-            : "Languages load nahi ho rahi hain."
+        showError(
+          getErrorMessage(
+            data,
+            "Languages load nahi ho rahi hain."
+          )
         );
         return;
       }
 
       setLanguages(
-        Array.isArray(data.languages)
+        Array.isArray(
+          data.languages
+        )
           ? data.languages
           : []
       );
@@ -868,11 +1216,13 @@ function App() {
         error
       );
 
-      setMessage(
+      showError(
         "Languages load karte time error aa gaya."
       );
     } finally {
-      setLanguagesLoading(false);
+      setLanguagesLoading(
+        false
+      );
     }
   };
 
@@ -895,83 +1245,98 @@ function App() {
   // TRANSLATE
   // =========================================================
 
-  const handleTranslate = async () => {
-    if (!translationText.trim()) {
-      setMessage(
-        "Please enter some text to translate."
-      );
-      return;
-    }
-
-    if (
-      sourceLanguage ===
-      targetLanguage
-    ) {
-      setTranslationResult(
-        translationText.trim()
-      );
-      setMessage("");
-      return;
-    }
-
-    setTranslationLoading(true);
-    setTranslationResult("");
-    setMessage("");
-
-    try {
-      const response =
-        await fetch(API.translate, {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            text: translationText,
-            source_language:
-              sourceLanguage,
-            target_language:
-              targetLanguage,
-          }),
-        });
-
-      const data =
-        await parseResponse(response);
-
-      if (!response.ok) {
-        setMessage(
-          typeof data === "object"
-            ? data.detail ||
-                "Translation failed."
-            : "Translation failed."
+  const handleTranslate =
+    async () => {
+      if (!translationText.trim()) {
+        showError(
+          "Please enter some text to translate."
         );
         return;
       }
 
-      setTranslationResult(
-        data.translated_text || ""
-      );
-    } catch (error) {
-      console.error(
-        "Translation error:",
-        error
-      );
+      if (
+        sourceLanguage ===
+        targetLanguage
+      ) {
+        setTranslationResult(
+          translationText.trim()
+        );
 
-      setMessage(
-        "Translation service se connection nahi ho pa raha."
-      );
-    } finally {
-      setTranslationLoading(false);
-    }
-  };
+        setMessage("");
+        return;
+      }
+
+      setTranslationLoading(true);
+      setTranslationResult("");
+      setMessage("");
+
+      try {
+        const response =
+          await fetch(
+            API.translate,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body: JSON.stringify({
+                text: translationText,
+                source_language:
+                  sourceLanguage,
+                target_language:
+                  targetLanguage,
+              }),
+            }
+          );
+
+        const data =
+          await parseResponse(
+            response
+          );
+
+        if (!response.ok) {
+          showError(
+            getErrorMessage(
+              data,
+              "Translation failed."
+            )
+          );
+          return;
+        }
+
+        setTranslationResult(
+          data.translated_text ||
+            ""
+        );
+      } catch (error) {
+        console.error(
+          "Translation error:",
+          error
+        );
+
+        showError(
+          "Translation service se connection nahi ho pa raha."
+        );
+      } finally {
+        setTranslationLoading(
+          false
+        );
+      }
+    };
 
   // =========================================================
   // SWAP LANGUAGES
   // =========================================================
 
   const swapLanguages = () => {
-    setSourceLanguage(targetLanguage);
-    setTargetLanguage(sourceLanguage);
+    setSourceLanguage(
+      targetLanguage
+    );
+
+    setTargetLanguage(
+      sourceLanguage
+    );
 
     if (translationResult) {
       setTranslationText(
@@ -1026,7 +1391,16 @@ function App() {
 
     setEmail("");
     setPassword("");
+
+    setRegisterName("");
+    setRegisterEmail("");
+    setRegisterPassword("");
+    setRegisterLanguage("Hindi");
+
+    setAuthMode("login");
+
     setMessage("");
+    setMessageType("error");
   };
 
   // =========================================================
@@ -1041,11 +1415,19 @@ function App() {
       <AppShell
         dashboard={dashboard}
         active="achievements"
-        onDashboard={closeAchievements}
+        onDashboard={
+          closeAchievements
+        }
         onSubjects={loadSubjects}
-        onTranslation={openTranslation}
-        onAchievements={openAchievements}
-        onCertificates={openCertificates}
+        onTranslation={
+          openTranslation
+        }
+        onAchievements={
+          openAchievements
+        }
+        onCertificates={
+          openCertificates
+        }
         onLogout={handleLogout}
       >
         <PageHeader
@@ -1123,7 +1505,11 @@ function App() {
         )}
 
         {message && (
-          <Alert type="error">
+          <Alert
+            type={
+              messageType
+            }
+          >
             {message}
           </Alert>
         )}
@@ -1143,11 +1529,19 @@ function App() {
       <AppShell
         dashboard={dashboard}
         active="certificates"
-        onDashboard={closeCertificates}
+        onDashboard={
+          closeCertificates
+        }
         onSubjects={loadSubjects}
-        onTranslation={openTranslation}
-        onAchievements={openAchievements}
-        onCertificates={openCertificates}
+        onTranslation={
+          openTranslation
+        }
+        onAchievements={
+          openAchievements
+        }
+        onCertificates={
+          openCertificates
+        }
         onLogout={handleLogout}
       >
         <PageHeader
@@ -1216,12 +1610,16 @@ function App() {
                       </span>
 
                       <strong>
-                        {certificate.score ?? 0}%
+                        {certificate.score ??
+                          0}
+                        %
                       </strong>
                     </div>
 
                     <div>
-                      <span>Issued</span>
+                      <span>
+                        Issued
+                      </span>
 
                       <strong>
                         {certificate.issued_at
@@ -1257,7 +1655,11 @@ function App() {
         )}
 
         {message && (
-          <Alert type="error">
+          <Alert
+            type={
+              messageType
+            }
+          >
             {message}
           </Alert>
         )}
@@ -1277,11 +1679,19 @@ function App() {
       <AppShell
         dashboard={dashboard}
         active="translation"
-        onDashboard={closeTranslation}
+        onDashboard={
+          closeTranslation
+        }
         onSubjects={loadSubjects}
-        onTranslation={openTranslation}
-        onAchievements={openAchievements}
-        onCertificates={openCertificates}
+        onTranslation={
+          openTranslation
+        }
+        onAchievements={
+          openAchievements
+        }
+        onCertificates={
+          openCertificates
+        }
         onLogout={handleLogout}
       >
         <PageHeader
@@ -1299,7 +1709,9 @@ function App() {
               </label>
 
               <select
-                value={sourceLanguage}
+                value={
+                  sourceLanguage
+                }
                 onChange={(event) =>
                   setSourceLanguage(
                     event.target.value
@@ -1312,12 +1724,16 @@ function App() {
                 {languages.map(
                   (language) => (
                     <option
-                      key={language.code}
+                      key={
+                        language.code
+                      }
                       value={
                         language.code
                       }
                     >
-                      {language.name}
+                      {
+                        language.name
+                      }
                     </option>
                   )
                 )}
@@ -1341,7 +1757,9 @@ function App() {
               </label>
 
               <select
-                value={targetLanguage}
+                value={
+                  targetLanguage
+                }
                 onChange={(event) =>
                   setTargetLanguage(
                     event.target.value
@@ -1354,12 +1772,16 @@ function App() {
                 {languages.map(
                   (language) => (
                     <option
-                      key={language.code}
+                      key={
+                        language.code
+                      }
                       value={
                         language.code
                       }
                     >
-                      {language.name}
+                      {
+                        language.name
+                      }
                     </option>
                   )
                 )}
@@ -1392,7 +1814,9 @@ function App() {
                 </div>
 
                 <textarea
-                  value={translationText}
+                  value={
+                    translationText
+                  }
                   onChange={(event) =>
                     setTranslationText(
                       event.target.value
@@ -1402,7 +1826,9 @@ function App() {
                 />
 
                 <div className="character-count">
-                  {translationText.length}{" "}
+                  {
+                    translationText.length
+                  }{" "}
                   characters
                 </div>
               </div>
@@ -1433,7 +1859,11 @@ function App() {
           )}
 
           {message && (
-            <Alert type="error">
+            <Alert
+              type={
+                messageType
+              }
+            >
               {message}
             </Alert>
           )}
@@ -1441,7 +1871,9 @@ function App() {
           <button
             type="button"
             className="btn btn-success btn-large"
-            onClick={handleTranslate}
+            onClick={
+              handleTranslate
+            }
             disabled={
               translationLoading ||
               languagesLoading
@@ -1464,19 +1896,23 @@ function App() {
     selectedLesson &&
     quizResult
   ) {
-    const totalQuestions = Math.max(
-      0,
-      Number(
-        quizResult.total_questions ?? 0
-      )
-    );
+    const totalQuestions =
+      Math.max(
+        0,
+        Number(
+          quizResult.total_questions ??
+            0
+        )
+      );
 
-    const correctAnswers = Math.max(
-      0,
-      Number(
-        quizResult.correct_answers ?? 0
-      )
-    );
+    const correctAnswers =
+      Math.max(
+        0,
+        Number(
+          quizResult.correct_answers ??
+            0
+        )
+      );
 
     const calculatedScore =
       totalQuestions > 0
@@ -1487,18 +1923,20 @@ function App() {
           )
         : 0;
 
-    const score = clampPercentage(
-      quizResult.score ??
-        calculatedScore
-    );
+    const score =
+      clampPercentage(
+        quizResult.score ??
+          calculatedScore
+      );
 
     const passed = score >= 50;
 
-    const incorrectAnswers = Math.max(
-      0,
-      totalQuestions -
-        correctAnswers
-    );
+    const incorrectAnswers =
+      Math.max(
+        0,
+        totalQuestions -
+          correctAnswers
+      );
 
     return (
       <AppShell
@@ -1506,9 +1944,15 @@ function App() {
         active="subjects"
         onDashboard={exitQuiz}
         onSubjects={loadSubjects}
-        onTranslation={openTranslation}
-        onAchievements={openAchievements}
-        onCertificates={openCertificates}
+        onTranslation={
+          openTranslation
+        }
+        onAchievements={
+          openAchievements
+        }
+        onCertificates={
+          openCertificates
+        }
         onLogout={handleLogout}
       >
         <section className="result-page">
@@ -1520,7 +1964,9 @@ function App() {
             }`}
           >
             <div className="result-icon">
-              {passed ? "🎉" : "📚"}
+              {passed
+                ? "🎉"
+                : "📚"}
             </div>
 
             <span
@@ -1606,7 +2052,9 @@ function App() {
               <button
                 type="button"
                 className="btn btn-secondary"
-                onClick={exitQuiz}
+                onClick={
+                  exitQuiz
+                }
               >
                 ← Back to Lesson
               </button>
@@ -1615,7 +2063,9 @@ function App() {
                 type="button"
                 className="btn btn-primary"
                 onClick={() => {
-                  setQuizResult(null);
+                  setQuizResult(
+                    null
+                  );
                   startQuiz();
                 }}
               >
@@ -1651,7 +2101,9 @@ function App() {
     const answeredCount =
       quizQuestions.filter(
         (question) =>
-          quizAnswers[question.id]
+          quizAnswers[
+            question.id
+          ]
       ).length;
 
     const progress =
@@ -1669,9 +2121,15 @@ function App() {
         active="subjects"
         onDashboard={exitQuiz}
         onSubjects={loadSubjects}
-        onTranslation={openTranslation}
-        onAchievements={openAchievements}
-        onCertificates={openCertificates}
+        onTranslation={
+          openTranslation
+        }
+        onAchievements={
+          openAchievements
+        }
+        onCertificates={
+          openCertificates
+        }
         onLogout={handleLogout}
       >
         <div className="quiz-shell">
@@ -1682,7 +2140,11 @@ function App() {
               </span>
 
               <h1>
-                📝 {selectedLesson.title} Quiz
+                📝{" "}
+                {
+                  selectedLesson.title
+                }{" "}
+                Quiz
               </h1>
 
               <p>
@@ -1694,7 +2156,9 @@ function App() {
             <div className="quiz-progress-summary">
               <strong>
                 {answeredCount}/
-                {quizQuestions.length}
+                {
+                  quizQuestions.length
+                }
               </strong>
 
               <span>
@@ -1740,7 +2204,9 @@ function App() {
               return (
                 <article
                   className="question-card"
-                  key={question.id}
+                  key={
+                    question.id
+                  }
                 >
                   <div className="question-number">
                     Q{index + 1}
@@ -1748,7 +2214,9 @@ function App() {
 
                   <div className="question-body">
                     <h2>
-                      {question.question}
+                      {
+                        question.question
+                      }
                     </h2>
 
                     <div className="quiz-options">
@@ -1805,7 +2273,11 @@ function App() {
           )}
 
           {message && (
-            <Alert type="error">
+            <Alert
+              type={
+                messageType
+              }
+            >
               {message}
             </Alert>
           )}
@@ -1813,8 +2285,12 @@ function App() {
           <button
             type="button"
             className="btn btn-primary btn-large"
-            onClick={submitQuiz}
-            disabled={quizSubmitting}
+            onClick={
+              submitQuiz
+            }
+            disabled={
+              quizSubmitting
+            }
           >
             {quizSubmitting
               ? "Submitting Quiz..."
@@ -1835,16 +2311,26 @@ function App() {
         dashboard={dashboard}
         active="subjects"
         onDashboard={() => {
-          setSelectedLesson(null);
+          setSelectedLesson(
+            null
+          );
+
           setMessage("");
+
           setQuizQuestions(null);
           setQuizAnswers({});
           setQuizResult(null);
         }}
         onSubjects={loadSubjects}
-        onTranslation={openTranslation}
-        onAchievements={openAchievements}
-        onCertificates={openCertificates}
+        onTranslation={
+          openTranslation
+        }
+        onAchievements={
+          openAchievements
+        }
+        onCertificates={
+          openCertificates
+        }
         onLogout={handleLogout}
       >
         <section className="lesson-detail">
@@ -1916,8 +2402,12 @@ function App() {
             <button
               type="button"
               className="btn btn-primary"
-              onClick={startQuiz}
-              disabled={quizLoading}
+              onClick={
+                startQuiz
+              }
+              disabled={
+                quizLoading
+              }
             >
               {quizLoading
                 ? "Loading Quiz..."
@@ -1926,7 +2416,11 @@ function App() {
           </div>
 
           {message && (
-            <Alert type="error">
+            <Alert
+              type={
+                messageType
+              }
+            >
               {message}
             </Alert>
           )}
@@ -1948,9 +2442,15 @@ function App() {
           setLessons(null)
         }
         onSubjects={loadSubjects}
-        onTranslation={openTranslation}
-        onAchievements={openAchievements}
-        onCertificates={openCertificates}
+        onTranslation={
+          openTranslation
+        }
+        onAchievements={
+          openAchievements
+        }
+        onCertificates={
+          openCertificates
+        }
         onLogout={handleLogout}
       >
         <PageHeader
@@ -2030,7 +2530,11 @@ function App() {
         )}
 
         {message && (
-          <Alert type="error">
+          <Alert
+            type={
+              messageType
+            }
+          >
             {message}
           </Alert>
         )}
@@ -2051,9 +2555,15 @@ function App() {
           setSubjects(null)
         }
         onSubjects={loadSubjects}
-        onTranslation={openTranslation}
-        onAchievements={openAchievements}
-        onCertificates={openCertificates}
+        onTranslation={
+          openTranslation
+        }
+        onAchievements={
+          openAchievements
+        }
+        onCertificates={
+          openCertificates
+        }
         onLogout={handleLogout}
       >
         <PageHeader
@@ -2080,9 +2590,11 @@ function App() {
                   key={subject.id}
                 >
                   <div className="subject-icon">
-                    {index % 3 === 0
+                    {index % 3 ===
+                    0
                       ? "📐"
-                      : index % 3 === 1
+                      : index % 3 ===
+                        1
                       ? "🔬"
                       : "📖"}
                   </div>
@@ -2132,7 +2644,11 @@ function App() {
         )}
 
         {message && (
-          <Alert type="error">
+          <Alert
+            type={
+              messageType
+            }
+          >
             {message}
           </Alert>
         )}
@@ -2166,9 +2682,15 @@ function App() {
         active="dashboard"
         onDashboard={() => {}}
         onSubjects={loadSubjects}
-        onTranslation={openTranslation}
-        onAchievements={openAchievements}
-        onCertificates={openCertificates}
+        onTranslation={
+          openTranslation
+        }
+        onAchievements={
+          openAchievements
+        }
+        onCertificates={
+          openCertificates
+        }
         onLogout={handleLogout}
       >
         <section className="hero-card">
@@ -2611,7 +3133,11 @@ function App() {
         </section>
 
         {message && (
-          <Alert type="error">
+          <Alert
+            type={
+              messageType
+            }
+          >
             {message}
           </Alert>
         )}
@@ -2620,8 +3146,11 @@ function App() {
   }
 
   // =========================================================
-  // LOGIN SCREEN
+  // AUTH SCREEN
   // =========================================================
+
+  const isRegister =
+    authMode === "register";
 
   return (
     <div className="login-page">
@@ -2667,91 +3196,316 @@ function App() {
       </div>
 
       <div className="login-panel">
-        <div className="login-card">
+        <div
+          className={`login-card ${
+            isRegister
+              ? "register-card"
+              : ""
+          }`}
+        >
           <div className="login-card-header">
             <div className="logo-circle">
               VE
             </div>
 
             <span className="login-small-label">
-              WELCOME BACK
+              {isRegister
+                ? "JOIN THE CLASSROOM"
+                : "WELCOME BACK"}
             </span>
 
             <h2>
-              Sign in to your classroom
+              {isRegister
+                ? "Create your account"
+                : "Sign in to your classroom"}
             </h2>
 
             <p>
-              Continue your vernacular
-              learning journey.
+              {isRegister
+                ? "Start your vernacular learning journey today."
+                : "Continue your vernacular learning journey."}
             </p>
           </div>
 
-          <div className="form-group">
-            <label>
-              Email address
-            </label>
+          {isRegister ? (
+            <>
+              <div className="form-group">
+                <label>
+                  Full name
+                </label>
 
-            <input
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(event) =>
-                setEmail(
-                  event.target.value
-                )
-              }
-              onKeyDown={(event) => {
-                if (
-                  event.key ===
-                  "Enter"
-                ) {
-                  handleLogin();
+                <input
+                  type="text"
+                  placeholder="Enter your full name"
+                  value={
+                    registerName
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setRegisterName(
+                      event.target.value
+                    )
+                  }
+                  autoComplete="name"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>
+                  Email address
+                </label>
+
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={
+                    registerEmail
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setRegisterEmail(
+                      event.target.value
+                    )
+                  }
+                  autoComplete="email"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>
+                  Password
+                </label>
+
+                <input
+                  type="password"
+                  placeholder="Create a password"
+                  value={
+                    registerPassword
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setRegisterPassword(
+                      event.target.value
+                    )
+                  }
+                  autoComplete="new-password"
+                  onKeyDown={(
+                    event
+                  ) => {
+                    if (
+                      event.key ===
+                      "Enter"
+                    ) {
+                      handleRegister();
+                    }
+                  }}
+                />
+
+                <small className="field-hint">
+                  Minimum 6 characters
+                </small>
+              </div>
+
+              <div className="form-group">
+                <label>
+                  Preferred language
+                </label>
+
+                <select
+                  value={
+                    registerLanguage
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setRegisterLanguage(
+                      event.target.value
+                    )
+                  }
+                >
+                  <option value="Hindi">
+                    Hindi
+                  </option>
+
+                  <option value="English">
+                    English
+                  </option>
+
+                  <option value="Bengali">
+                    Bengali
+                  </option>
+
+                  <option value="Odia">
+                    Odia
+                  </option>
+
+                  <option value="Santali">
+                    Santali
+                  </option>
+                </select>
+              </div>
+
+              <button
+                type="button"
+                className="login-button"
+                disabled={
+                  registerLoading
                 }
-              }}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>
-              Password
-            </label>
-
-            <input
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(event) =>
-                setPassword(
-                  event.target.value
-                )
-              }
-              onKeyDown={(event) => {
-                if (
-                  event.key ===
-                  "Enter"
-                ) {
-                  handleLogin();
+                onClick={
+                  handleRegister
                 }
-              }}
-            />
-          </div>
+              >
+                {registerLoading
+                  ? "Creating account..."
+                  : "Create Account →"}
+              </button>
 
-          <button
-            type="button"
-            className="login-button"
-            disabled={loading}
-            onClick={handleLogin}
-          >
-            {loading
-              ? "Signing in..."
-              : "Sign In →"}
-          </button>
+              {message && (
+                <div
+                  className={`login-message ${
+                    messageType
+                  }`}
+                >
+                  <span>
+                    {messageType ===
+                    "error"
+                      ? "⚠"
+                      : "✓"}
+                  </span>
 
-          {message && (
-            <div className="login-message">
-              {message}
-            </div>
+                  <span>
+                    {message}
+                  </span>
+                </div>
+              )}
+
+              <div className="auth-switch">
+                <span>
+                  Already have an account?
+                </span>
+
+                <button
+                  type="button"
+                  onClick={
+                    switchToLogin
+                  }
+                >
+                  Sign In
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="form-group">
+                <label>
+                  Email address
+                </label>
+
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(
+                    event
+                  ) =>
+                    setEmail(
+                      event.target.value
+                    )
+                  }
+                  onKeyDown={(
+                    event
+                  ) => {
+                    if (
+                      event.key ===
+                      "Enter"
+                    ) {
+                      handleLogin();
+                    }
+                  }}
+                  autoComplete="email"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>
+                  Password
+                </label>
+
+                <input
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(
+                    event
+                  ) =>
+                    setPassword(
+                      event.target.value
+                    )
+                  }
+                  onKeyDown={(
+                    event
+                  ) => {
+                    if (
+                      event.key ===
+                      "Enter"
+                    ) {
+                      handleLogin();
+                    }
+                  }}
+                  autoComplete="current-password"
+                />
+              </div>
+
+              <button
+                type="button"
+                className="login-button"
+                disabled={loading}
+                onClick={
+                  handleLogin
+                }
+              >
+                {loading
+                  ? "Signing in..."
+                  : "Sign In →"}
+              </button>
+
+              {message && (
+                <div
+                  className={`login-message ${
+                    messageType
+                  }`}
+                >
+                  <span>
+                    {messageType ===
+                    "error"
+                      ? "⚠"
+                      : "✓"}
+                  </span>
+
+                  <span>
+                    {message}
+                  </span>
+                </div>
+              )}
+
+              <div className="auth-switch">
+                <span>
+                  Don't have an account?
+                </span>
+
+                <button
+                  type="button"
+                  onClick={
+                    switchToRegister
+                  }
+                >
+                  Create Account
+                </button>
+              </div>
+            </>
           )}
 
           <div className="login-footer">
@@ -2816,7 +3570,9 @@ function ScoreRing({
           r={radius}
           fill="none"
           stroke="rgba(15, 23, 42, 0.09)"
-          strokeWidth={strokeWidth}
+          strokeWidth={
+            strokeWidth
+          }
         />
 
         <circle
@@ -2829,7 +3585,9 @@ function ScoreRing({
               ? "#5b3df5"
               : "#f59e0b"
           }
-          strokeWidth={strokeWidth}
+          strokeWidth={
+            strokeWidth
+          }
           strokeLinecap="round"
           strokeDasharray={`${progressLength} ${remainingLength}`}
           transform={`rotate(-90 ${center} ${center})`}
@@ -2876,7 +3634,9 @@ function AppShell({
     .split(/\s+/)
     .slice(0, 2)
     .map((part) =>
-      part.charAt(0).toUpperCase()
+      part
+        .charAt(0)
+        .toUpperCase()
     )
     .join("");
 
@@ -3127,7 +3887,9 @@ function StatCard({
       </div>
 
       <div className="stat-copy">
-        <span>{label}</span>
+        <span>
+          {label}
+        </span>
 
         <strong>
           {value ?? 0}
@@ -3222,7 +3984,9 @@ function Alert({
           : "✓"}
       </span>
 
-      <span>{children}</span>
+      <span>
+        {children}
+      </span>
     </div>
   );
 }
