@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "./App.css";
+import AITutor from "./AITutor";
 
 const API_URL =
   import.meta.env.VITE_API_URL ||
@@ -133,6 +134,12 @@ function App() {
 
   const [dashboard, setDashboard] =
     useState(null);
+
+  // =========================================================
+  // AI TUTOR
+  // =========================================================
+
+  const [showAITutor, setShowAITutor] = useState(false);
 
   // =========================================================
   // ACHIEVEMENTS
@@ -289,6 +296,20 @@ function App() {
   const showSuccess = (text) => {
     setMessage(text);
     setMessageType("success");
+  };
+
+  // =========================================================
+  // AI TUTOR NAVIGATION
+  // =========================================================
+
+  const openAITutor = () => {
+    setShowAITutor(true);
+    setMessage("");
+  };
+
+  const closeAITutor = () => {
+    setShowAITutor(false);
+    setMessage("");
   };
 
   // =========================================================
@@ -1353,6 +1374,7 @@ function App() {
 
   const closeTranslation = () => {
     setTranslationOpen(false);
+    setShowAITutor(false);
     setTranslationText("");
     setTranslationResult("");
     setMessage("");
@@ -1404,6 +1426,30 @@ function App() {
   };
 
   // =========================================================
+  // AI TUTOR SCREEN
+  // =========================================================
+
+  if (dashboard && showAITutor) {
+    return (
+      <AppShell
+        dashboard={dashboard}
+        active="ai-tutor"
+        onDashboard={closeAITutor}
+        onSubjects={loadSubjects}
+        onTranslation={openTranslation}
+        onAITutor={openAITutor}
+        onAchievements={openAchievements}
+        onCertificates={openCertificates}
+        onAITutor={openAITutor}
+
+        onLogout={handleLogout}
+      >
+        <AITutor />
+      </AppShell>
+    );
+  }
+
+  // =========================================================
   // ACHIEVEMENTS SCREEN
   // =========================================================
 
@@ -1428,6 +1474,8 @@ function App() {
         onCertificates={
           openCertificates
         }
+        onAITutor={openAITutor}
+
         onLogout={handleLogout}
       >
         <PageHeader
@@ -1542,6 +1590,8 @@ function App() {
         onCertificates={
           openCertificates
         }
+        onAITutor={openAITutor}
+
         onLogout={handleLogout}
       >
         <PageHeader
@@ -1692,6 +1742,8 @@ function App() {
         onCertificates={
           openCertificates
         }
+        onAITutor={openAITutor}
+
         onLogout={handleLogout}
       >
         <PageHeader
@@ -1953,6 +2005,8 @@ function App() {
         onCertificates={
           openCertificates
         }
+        onAITutor={openAITutor}
+
         onLogout={handleLogout}
       >
         <section className="result-page">
@@ -2130,6 +2184,8 @@ function App() {
         onCertificates={
           openCertificates
         }
+        onAITutor={openAITutor}
+
         onLogout={handleLogout}
       >
         <div className="quiz-shell">
@@ -2243,66 +2299,21 @@ function App() {
                                   option.key
                                 )
                               }
-                              style={{
-                                width: "100%",
-                                minHeight: "64px",
-                                display: "flex",
-                                flexDirection: "row",
-                                alignItems: "center",
-                                justifyContent: "flex-start",
-                                gap: "14px",
-                                padding: "14px 18px",
-                                margin: "0",
-                                boxSizing: "border-box",
-                                textAlign: "left",
-                              }}
                             >
-                              <span
-                                className="option-key"
-                                style={{
-                                  width: "38px",
-                                  height: "38px",
-                                  minWidth: "38px",
-                                  flex: "0 0 38px",
-                                  display: "inline-flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  boxSizing: "border-box",
-                                  borderRadius: "10px",
-                                  fontWeight: 800,
-                                  lineHeight: 1,
-                                }}
-                              >
-                                {option.key}
+                              <span className="option-key">
+                                {
+                                  option.key
+                                }
                               </span>
 
-                              <span
-                                style={{
-                                  flex: "1 1 auto",
-                                  minWidth: 0,
-                                  display: "block",
-                                  textAlign: "left",
-                                  lineHeight: 1.5,
-                                }}
-                              >
-                                {option.text}
+                              <span>
+                                {
+                                  option.text
+                                }
                               </span>
 
                               {selected && (
-                                <span
-                                  className="option-check"
-                                  style={{
-                                    marginLeft: "auto",
-                                    flex: "0 0 28px",
-                                    width: "28px",
-                                    height: "28px",
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    borderRadius: "50%",
-                                    fontWeight: 800,
-                                  }}
-                                >
+                                <span className="option-check">
                                   ✓
                                 </span>
                               )}
@@ -2376,6 +2387,8 @@ function App() {
         onCertificates={
           openCertificates
         }
+        onAITutor={openAITutor}
+
         onLogout={handleLogout}
       >
         <section className="lesson-detail">
@@ -2496,6 +2509,8 @@ function App() {
         onCertificates={
           openCertificates
         }
+        onAITutor={openAITutor}
+
         onLogout={handleLogout}
       >
         <PageHeader
@@ -2609,6 +2624,8 @@ function App() {
         onCertificates={
           openCertificates
         }
+        onAITutor={openAITutor}
+
         onLogout={handleLogout}
       >
         <PageHeader
@@ -2736,6 +2753,8 @@ function App() {
         onCertificates={
           openCertificates
         }
+        onAITutor={openAITutor}
+
         onLogout={handleLogout}
       >
         <section className="hero-card">
@@ -3666,6 +3685,7 @@ function AppShell({
   onDashboard,
   onSubjects,
   onTranslation,
+  onAITutor,
   onAchievements,
   onCertificates,
   onLogout,
@@ -3761,6 +3781,19 @@ function AppShell({
             <span>
               Translation
             </span>
+          </button>
+
+          <button
+            type="button"
+            className={
+              active === "ai-tutor"
+                ? "active"
+                : ""
+            }
+            onClick={onAITutor}
+          >
+            ✨{" "}
+            <span>AI Tutor</span>
           </button>
         </nav>
 
