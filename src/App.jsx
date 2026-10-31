@@ -1,11 +1,11 @@
 import { useState } from "react";
 import "./App.css";
 import AITutor from "./AITutor";
+import LessonContent from "./LessonContent";
 
 const API_URL =
   import.meta.env.VITE_API_URL ||
-  "https://sih-vernacular-education-backend.onrender.com";
-
+  "http://127.0.0.1:8000";
 const API = {
   login: `${API_URL}/login`,
   register: `${API_URL}/register`,
@@ -2437,9 +2437,8 @@ function App() {
             </div>
 
             <div className="lesson-content">
-              {selectedLesson.content ||
-                "Lesson content abhi available nahi hai."}
-            </div>
+  <LessonContent content={selectedLesson.content} />
+</div>
           </article>
 
           <div className="lesson-action-card">
